@@ -29,6 +29,18 @@ static char THIS_FILE[] = __FILE__;
 
 extern CG_PolygonList polygons;
 extern double max;
+extern int firstDraw;
+
+//Drawing Globals
+std::vector<COLORREF>* vec_bitmap = NULL;
+int global_h;
+int global_w;
+
+//Mouse Globals
+int mousePressed = 0;
+int mouseX;
+int mouseY;
+
 // Use this macro to display text messages in the status bar.
 #define STATUS_BAR_TEXT(str) (((CMainFrame*)GetParentFrame())->getStatusBar().SetWindowText(str))
 
@@ -66,16 +78,20 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_COMMAND(ID_LIGHT_SHADING_GOURAUD, OnLightShadingGouraud)
 	ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_GOURAUD, OnUpdateLightShadingGouraud)
 	ON_COMMAND(ID_LIGHT_CONSTANTS, OnLightConstants)
+	//ON_COMMAND(RI_MOUSE_LEFT_BUTTON_DOWN,OnLeftButtonDown)
+	ON_WM_MOUSEMOVE()
+	ON_WM_LBUTTONDOWN()
+	ON_WM_LBUTTONUP()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 
 // A patch to fix GLaux disappearance from VS2005 to VS2008
 void auxSolidCone(GLdouble radius, GLdouble height) {
-        GLUquadric *quad = gluNewQuadric();
-        gluQuadricDrawStyle(quad, GLU_FILL);
-        gluCylinder(quad, radius, 0.0, height, 20, 20);
-        gluDeleteQuadric(quad);
+	GLUquadric *quad = gluNewQuadric();
+	gluQuadricDrawStyle(quad, GLU_FILL);
+	gluCylinder(quad, radius, 0.0, height, 20, 20);
+	gluDeleteQuadric(quad);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -86,7 +102,7 @@ CCGWorkView::CCGWorkView()
 	// Set default values
 	m_nAxis = ID_AXIS_X;
 	m_nAction = ID_ACTION_ROTATE;
-	m_nView = ID_VIEW_ORTHOGRAPHIC;	
+	m_nView = ID_VIEW_ORTHOGRAPHIC;
 	m_bIsPerspective = false;
 
 	m_nLightShading = ID_LIGHT_SHADING_FLAT;
@@ -97,7 +113,7 @@ CCGWorkView::CCGWorkView()
 	m_nMaterialCosineFactor = 32;
 
 	//init the first light to be enabled
-	m_lights[LIGHT_ID_1].enabled=true;
+	m_lights[LIGHT_ID_1].enabled = true;
 }
 
 CCGWorkView::~CCGWorkView()
@@ -146,7 +162,7 @@ BOOL CCGWorkView::PreCreateWindow(CREATESTRUCT& cs)
 
 
 
-int CCGWorkView::OnCreate(LPCREATESTRUCT lpCreateStruct) 
+int CCGWorkView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
 	if (CView::OnCreate(lpCreateStruct) == -1)
 		return -1;
@@ -162,7 +178,7 @@ BOOL CCGWorkView::InitializeCGWork()
 {
 	m_pDC = new CClientDC(this);
 
-	if ( NULL == m_pDC ) { // failure to get DC
+	if (NULL == m_pDC) { // failure to get DC
 		::AfxMessageBox(CString("Couldn't get a valid DC."));
 		return FALSE;
 	}
@@ -174,12 +190,31 @@ BOOL CCGWorkView::InitializeCGWork()
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView message handlers
 
+void CCGWorkView::resetTransformations(){
+	CRect r;
+	GetClientRect(&r);
+	int w = r.Width();
+	int h = r.Height();
+	int mid_w = w / 2;
+	int mid_h = h / 2;
+	int scale = 0;
+	if (w > h)
+		scale = mid_h;
+	else
+		scale = mid_w;
 
-void CCGWorkView::OnSize(UINT nType, int cx, int cy) 
+	global_h = h;
+	global_w = w;
+
+	m_scale = mat4::scale(scale / 4);
+	m_translate = mat4::translate(vec4(mid_w, mid_h, 1));
+}
+
+void CCGWorkView::OnSize(UINT nType, int cx, int cy)
 {
 	CView::OnSize(nType, cx, cy);
 
-	if ( 0 >= cx || 0 >= cy ) {
+	if (0 >= cx || 0 >= cy) {
 		return;
 	}
 
@@ -189,13 +224,15 @@ void CCGWorkView::OnSize(UINT nType, int cx, int cy)
 
 	// compute the aspect ratio
 	// this will keep all dimension scales equal
-	m_AspectRatio = (GLdouble)m_WindowWidth/(GLdouble)m_WindowHeight;
+	m_AspectRatio = (GLdouble)m_WindowWidth / (GLdouble)m_WindowHeight;
+
+	resetTransformations();
 }
 
 
 BOOL CCGWorkView::SetupViewingFrustum(void)
 {
-    return TRUE;
+	return TRUE;
 }
 
 
@@ -210,20 +247,21 @@ BOOL CCGWorkView::SetupViewingOrthoConstAspect(void)
 
 
 
-BOOL CCGWorkView::OnEraseBkgnd(CDC* pDC) 
+BOOL CCGWorkView::OnEraseBkgnd(CDC* pDC)
 {
 	// Windows will clear the window with the background color every time your window 
 	// is redrawn, and then CGWork will clear the viewport with its own background color.
 
-	// return CView::OnEraseBkgnd(pDC);
-	return true;
+	return CView::OnEraseBkgnd(pDC);
+	//return true;
 }
 
-CDC* my_pDC;
-CBitmap bitmap;
 
-void plotPixel(int x,int y){
-		my_pDC->SetPixel(x, y, RGB(0, 0, 0));
+
+
+void plotPixel(int x, int y){
+	if (x >= 0 && x <= global_w && y >= 0 && y <= global_h)
+		(*vec_bitmap)[x + y*global_w] = RGB(0, 0, 0);
 }
 
 void CCGWorkView::line(int x1, int y1, int x2, int y2){
@@ -371,46 +409,59 @@ void CCGWorkView::big_slope_positive(int x1, int y1, int x2, int y2){
 // CCGWorkView drawing
 /////////////////////////////////////////////////////////////////////////////
 
-
+void CCGWorkView::updatePipeline(){
+	//mat4 I = mat4::eye();
+	//mat4 scaleMat = mat4::scale(scale);
+	//mat4 rotate = mat4::rotate(xTheta,yTheta, zTheta);
+	//mat4 translation = mat4::translate(vec4(mid_w, mid_h, 1));
+	mat4 prespective = mat4::eye();
+	prespective[3][3] = 0;
+	prespective[2][2] = 15;
+	prespective[2][3] = 80;
+	prespective[3][2] = -1;
+	//m_scale = m_scale * (1/max);
+	m_pipeline = prespective*m_translate*m_scale*m_rotate;
+}
 
 void CCGWorkView::OnDraw(CDC* pDC)
 {
-	my_pDC = pDC;
 	CCGWorkDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
 	if (!pDoc)
-	    return;
+		return;
 	//CG_PolygonList& polygons = MyPoly::GetInstance();
 	CDC dcMem;
 	dcMem.CreateCompatibleDC(pDC);
+
+	if (firstDraw){
+		resetTransformations();
+		m_rotate = mat4::rotate(0, 0, 0);
+		firstDraw = 0;
+	}
+
+	CCGWorkView::updatePipeline();
+
 	CRect r;
 	GetClientRect(&r);
 	int w = r.Width();
 	int h = r.Height();
-	int mid_w = w / 2;
-	int mid_h = h / 2;
-	int scale = 0;
-	if (w > h)
-		scale = mid_h;
-	else
-		scale = mid_w;
+		
+	vec_bitmap = new std::vector<COLORREF>((w + 1)*(h + 1), RGB(255, 255, 255));
+
 	if (polygons.getSize() != 0){
 		CG_Point* p1;
 		CG_Point* p2;
 		CG_Point* tmp;
 		for (CG_Polygon* polygon = polygons.first(); polygon != NULL; polygon = polygons.next()){
-			/*for (CG_Point* point = polygon->first(); point != NULL; point = polygon->next()){
-				//pDC->SetPixel((int)(point[0] * 10), (int)(point[1] * 10), RGB(0, 0, 0));
-
-				}*/
 			p1 = polygon->first();
 			p2 = polygon->next();
 			while (true){
-				int x_offset_p1 = (p1[0] * scale / max);
-				int y_offset_p1 = (p1[1] * scale / max);
-				int x_offset_p2 = (p2[0] * scale / max);
-				int y_offset_p2 = (p2[1] * scale / max);
-				line(mid_w + x_offset_p1, mid_h + y_offset_p1, mid_w + x_offset_p2, mid_h + y_offset_p2);
+				/*vec4 p1Offset = *p1*(scale / max);
+				vec4 p2Offset = *p2*(scale / max);*/
+				vec4 p1Offset = m_pipeline*(*p1);
+				vec4 p2Offset = m_pipeline*(*p2);
+				line(p1Offset[0], p1Offset[1], p2Offset[0], p2Offset[1]);
+				//line(mid_w + p1Offset[0], mid_h + p1Offset[1], mid_w + p2Offset[0], mid_h + p2Offset[1]);
 				tmp = p2;
 				p2 = polygon->next();
 				p1 = tmp;
@@ -419,13 +470,22 @@ void CCGWorkView::OnDraw(CDC* pDC)
 					break;
 				}
 			}
-			int x_offset_p1 = (p1[0] * scale / max);
-			int y_offset_p1 = (p1[1] * scale / max);
-			int x_offset_p2 = (p2[0] * scale / max);
-			int y_offset_p2 = (p2[1] * scale / max);
-			line(mid_w + x_offset_p1, mid_h + y_offset_p1, mid_w + x_offset_p2, mid_h + y_offset_p2);
+
+			vec4 p1Offset = m_pipeline*(*p1);
+			vec4 p2Offset = m_pipeline*(*p2);
+			line(p1Offset[0], p1Offset[1], p2Offset[0], p2Offset[1]);
+			//line(mid_w + p1Offset[0], mid_h + p1Offset[1], mid_w + p2Offset[0], mid_h + p2Offset[1]);
 		}
 	}
+	CBitmap bitmap;
+	std::vector<COLORREF> tmp(*vec_bitmap);
+	bitmap.CreateBitmap(w, h, 1, 32, &tmp[0]);
+	dcMem.SelectObject(&bitmap);
+	pDC->TransparentBlt(0, 0, w, h, &dcMem, 0, 0, w, h, RGB(100, 100, 100));
+	bitmap.DeleteObject();
+	dcMem.DeleteDC();
+	delete vec_bitmap;
+
 	//big_slope_negative(20, 200, 20, 500);
 }
 
@@ -433,12 +493,12 @@ void CCGWorkView::OnDraw(CDC* pDC)
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView CGWork Finishing and clearing...
 
-void CCGWorkView::OnDestroy() 
+void CCGWorkView::OnDestroy()
 {
 	CView::OnDestroy();
 
 	// delete the DC
-	if ( m_pDC ) {
+	if (m_pDC) {
 		delete m_pDC;
 	}
 }
@@ -455,13 +515,13 @@ void CCGWorkView::RenderScene() {
 }
 
 
-void CCGWorkView::OnFileLoad() 
+void CCGWorkView::OnFileLoad()
 {
-	TCHAR szFilters[] = _T ("IRIT Data Files (*.itd)|*.itd|All Files (*.*)|*.*||");
+	TCHAR szFilters[] = _T("IRIT Data Files (*.itd)|*.itd|All Files (*.*)|*.*||");
 
-	CFileDialog dlg(TRUE, _T("itd"), _T("*.itd"), OFN_FILEMUSTEXIST | OFN_HIDEREADONLY ,szFilters);
+	CFileDialog dlg(TRUE, _T("itd"), _T("*.itd"), OFN_FILEMUSTEXIST | OFN_HIDEREADONLY, szFilters);
 
-	if (dlg.DoModal () == IDOK) {
+	if (dlg.DoModal() == IDOK) {
 		m_strItdFileName = dlg.GetPathName();		// Full path and filename
 		PngWrapper p;
 		CGSkelProcessIritDataFiles(m_strItdFileName, 1);
@@ -469,7 +529,7 @@ void CCGWorkView::OnFileLoad()
 		// Your code here...
 
 		Invalidate();	// force a WM_PAINT for drawing.
-	} 
+	}
 
 }
 
@@ -482,26 +542,26 @@ void CCGWorkView::OnFileLoad()
 // Note: that all the following Message Handlers act in a similar way.
 // Each control or command has two functions associated with it.
 
-void CCGWorkView::OnViewOrthographic() 
+void CCGWorkView::OnViewOrthographic()
 {
 	m_nView = ID_VIEW_ORTHOGRAPHIC;
 	m_bIsPerspective = false;
 	Invalidate();		// redraw using the new view.
 }
 
-void CCGWorkView::OnUpdateViewOrthographic(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateViewOrthographic(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nView == ID_VIEW_ORTHOGRAPHIC);
 }
 
-void CCGWorkView::OnViewPerspective() 
+void CCGWorkView::OnViewPerspective()
 {
 	m_nView = ID_VIEW_PERSPECTIVE;
 	m_bIsPerspective = true;
 	Invalidate();
 }
 
-void CCGWorkView::OnUpdateViewPerspective(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateViewPerspective(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nView == ID_VIEW_PERSPECTIVE);
 }
@@ -511,32 +571,32 @@ void CCGWorkView::OnUpdateViewPerspective(CCmdUI* pCmdUI)
 
 // ACTION HANDLERS ///////////////////////////////////////////
 
-void CCGWorkView::OnActionRotate() 
+void CCGWorkView::OnActionRotate()
 {
 	m_nAction = ID_ACTION_ROTATE;
 }
 
-void CCGWorkView::OnUpdateActionRotate(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateActionRotate(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nAction == ID_ACTION_ROTATE);
 }
 
-void CCGWorkView::OnActionTranslate() 
+void CCGWorkView::OnActionTranslate()
 {
 	m_nAction = ID_ACTION_TRANSLATE;
 }
 
-void CCGWorkView::OnUpdateActionTranslate(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateActionTranslate(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nAction == ID_ACTION_TRANSLATE);
 }
 
-void CCGWorkView::OnActionScale() 
+void CCGWorkView::OnActionScale()
 {
 	m_nAction = ID_ACTION_SCALE;
 }
 
-void CCGWorkView::OnUpdateActionScale(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateActionScale(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nAction == ID_ACTION_SCALE);
 }
@@ -550,42 +610,47 @@ void CCGWorkView::OnUpdateActionScale(CCmdUI* pCmdUI)
 // Gets calles when the X button is pressed or when the Axis->X menu is selected.
 // The only thing we do here is set the ChildView member variable m_nAxis to the 
 // selected axis.
-void CCGWorkView::OnAxisX() 
+void CCGWorkView::OnAxisX()
 {
 	m_nAxis = ID_AXIS_X;
+	//m_rotate = mat4::rotateX(45);
+
 }
 
 // Gets called when windows has to repaint either the X button or the Axis pop up menu.
 // The control is responsible for its redrawing.
 // It sets itself disabled when the action is a Scale action.
 // It sets itself Checked if the current axis is the X axis.
-void CCGWorkView::OnUpdateAxisX(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateAxisX(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nAxis == ID_AXIS_X);
 }
 
 
-void CCGWorkView::OnAxisY() 
+void CCGWorkView::OnAxisY()
 {
 	m_nAxis = ID_AXIS_Y;
+	//m_rotate = mat4::rotateY(45);
+
 }
 
-void CCGWorkView::OnUpdateAxisY(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateAxisY(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nAxis == ID_AXIS_Y);
 }
 
 
-void CCGWorkView::OnAxisZ() 
+void CCGWorkView::OnAxisZ()
 {
 	m_nAxis = ID_AXIS_Z;
 }
 
-void CCGWorkView::OnUpdateAxisZ(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateAxisZ(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nAxis == ID_AXIS_Z);
-}
+	//m_rotate = mat4::rotateZ( 45);
 
+}
 
 
 
@@ -597,46 +662,106 @@ void CCGWorkView::OnUpdateAxisZ(CCmdUI* pCmdUI)
 
 // LIGHT SHADING HANDLERS ///////////////////////////////////////////
 
-void CCGWorkView::OnLightShadingFlat() 
+void CCGWorkView::OnLightShadingFlat()
 {
 	m_nLightShading = ID_LIGHT_SHADING_FLAT;
 }
 
-void CCGWorkView::OnUpdateLightShadingFlat(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateLightShadingFlat(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nLightShading == ID_LIGHT_SHADING_FLAT);
 }
 
 
-void CCGWorkView::OnLightShadingGouraud() 
+void CCGWorkView::OnLightShadingGouraud()
 {
 	m_nLightShading = ID_LIGHT_SHADING_GOURAUD;
 }
 
-void CCGWorkView::OnUpdateLightShadingGouraud(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateLightShadingGouraud(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nLightShading == ID_LIGHT_SHADING_GOURAUD);
 }
 
 // LIGHT SETUP HANDLER ///////////////////////////////////////////
 
-void CCGWorkView::OnLightConstants() 
+void CCGWorkView::OnLightConstants()
 {
 	CLightDialog dlg;
 
-	for (int id=LIGHT_ID_1;id<MAX_LIGHT;id++)
-	{	    
-	    dlg.SetDialogData((LightID)id,m_lights[id]);
-	}
-	dlg.SetDialogData(LIGHT_ID_AMBIENT,m_ambientLight);
-
-	if (dlg.DoModal() == IDOK) 
+	for (int id = LIGHT_ID_1; id<MAX_LIGHT; id++)
 	{
-	    for (int id=LIGHT_ID_1;id<MAX_LIGHT;id++)
-	    {
-		m_lights[id] = dlg.GetDialogData((LightID)id);
-	    }
-	    m_ambientLight = dlg.GetDialogData(LIGHT_ID_AMBIENT);
-	}	
+		dlg.SetDialogData((LightID)id, m_lights[id]);
+	}
+	dlg.SetDialogData(LIGHT_ID_AMBIENT, m_ambientLight);
+
+	if (dlg.DoModal() == IDOK)
+	{
+		for (int id = LIGHT_ID_1; id<MAX_LIGHT; id++)
+		{
+			m_lights[id] = dlg.GetDialogData((LightID)id);
+		}
+		m_ambientLight = dlg.GetDialogData(LIGHT_ID_AMBIENT);
+	}
 	Invalidate();
+}
+
+void CCGWorkView::OnLButtonDown(UINT nFlags, CPoint point){
+	mousePressed = 1;
+}
+
+
+void CCGWorkView::OnLButtonUp(UINT nFlags, CPoint point){
+	mousePressed = 0;
+}
+
+void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point){
+	if (mousePressed){
+		double delta = mouseX - point.x;
+		switch (m_nAction){
+		case ID_ACTION_TRANSLATE:
+			switch (m_nAxis){
+			case ID_AXIS_X:
+				m_translate.updateTranslate(vec4(-delta, 0, 0));
+				break;
+			case ID_AXIS_Y:
+				m_translate.updateTranslate(vec4(0, -delta, 0));
+				break;
+			case ID_AXIS_Z:
+				m_translate.updateTranslate(vec4(0, 0, -delta));
+				break;
+			}
+			break;
+		case ID_ACTION_ROTATE:
+			switch (m_nAxis){
+			case ID_AXIS_X:
+				m_rotate = m_rotate * mat4::rotateX(delta/5);
+				break;
+			case ID_AXIS_Y:
+				m_rotate = m_rotate * mat4::rotateY(delta/5);
+				break;
+			case ID_AXIS_Z:
+				m_rotate = m_rotate * mat4::rotateZ(delta/5);
+				break;
+			}
+			break;
+		case ID_ACTION_SCALE:
+			switch (m_nAxis){
+			case ID_AXIS_X:
+				m_scale.updateScale(vec4(delta, 0, 0));
+				break;
+			case ID_AXIS_Y:
+				m_scale.updateScale(vec4(0, delta, 0));
+				break;
+			case ID_AXIS_Z:
+				m_scale.updateScale(vec4(0, 0, delta));
+				break;
+			}
+			break;
+		}
+		
+		Invalidate();
+	}
+	mouseX = point.x;
+	mouseY = point.y;
 }

@@ -42,6 +42,20 @@ public:
 		}
 	}
 
+	void clear(){
+		Node* tmp = head;
+		Node* next;
+		if (tmp == NULL)
+			return;
+		while (tmp != NULL){
+			next = tmp->next;
+			delete tmp;
+			tmp = next;
+		}
+		head = NULL;
+		curr = NULL;
+	}
+
 	Node* add(T new_data){
 		Node* tmp;
 		Node* newNode = new Node(new_data);

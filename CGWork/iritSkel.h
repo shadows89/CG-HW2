@@ -16,24 +16,29 @@
 #include "symb_lib.h"
 #include <vector>
 #include "LinkedList.h"
+#include "vec4.hpp"
 
 
-typedef double CG_Point;
+typedef vec4 CG_Point;
 typedef LinkedList<CG_Point*> CG_Polygon;
 typedef LinkedList<CG_Polygon*> CG_PolygonList;
+
+//typedef double CG_Point;
+//typedef LinkedList<CG_Point*> CG_Polygon;
+//typedef LinkedList<CG_Polygon*> CG_PolygonList;
 
 
 /*class MyPoly{
 public:
-	//static CG_PolygonList polygons;
-	static CG_PolygonList& GetInstance(){
-		static CG_PolygonList instance;
-		return instance;
-	}
+//static CG_PolygonList polygons;
+static CG_PolygonList& GetInstance(){
+static CG_PolygonList instance;
+return instance;
+}
 private:
-	MyPoly(MyPoly const&);
-	void operator=(MyPoly const&);
-	MyPoly();
+MyPoly(MyPoly const&);
+void operator=(MyPoly const&);
+MyPoly();
 };*/
 
 

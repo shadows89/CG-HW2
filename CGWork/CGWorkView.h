@@ -15,18 +15,18 @@
 
 
 #include "Light.h"
-
+#include "mat4.hpp"
 class CCGWorkView : public CView
 {
 protected: // create from serialization only
 	CCGWorkView();
 	DECLARE_DYNCREATE(CCGWorkView)
 
-// Attributes
+	// Attributes
 public:
 	CCGWorkDoc* GetDocument();
 
-// Operations
+	// Operations
 public:
 
 private:
@@ -34,7 +34,11 @@ private:
 	int m_nAction;				// Rotate, Translate, Scale
 	int m_nView;				// Orthographic, perspective
 	bool m_bIsPerspective;			// is the view perspective
-	
+	mat4 m_scale = mat4::eye();
+	mat4 m_translate = mat4::translate(vec4(1, 1, 1));
+	mat4 m_rotate = mat4::rotate(0, 0, 0);
+	mat4 m_pipeline = m_scale*m_translate*m_rotate;
+
 	CString m_strItdFileName;		// file name of IRIT data
 
 	int m_nLightShading;			// shading: Flat, Gouraud.
@@ -44,29 +48,27 @@ private:
 	double m_lMaterialSpecular;		// The Specular in the scene
 	int m_nMaterialCosineFactor;		// The cosine factor for the specular
 
-	void line(int x1, int y1,int x2, int y2);
+	void line(int x1, int y1, int x2, int y2);
 	void small_slope_negative(int x1, int y1, int x2, int y2);
 	void small_slope_positive(int x1, int y1, int x2, int y2);
 	void big_slope_positive(int x1, int y1, int x2, int y2);
 	void big_slope_negative(int x1, int y1, int x2, int y2);
-	void drawVerticalLine(int x1, int y1, int x2, int y2);
-	void drawLine1(int x1, int y1, int x2, int y2);
-	void chooseDrawLine(int x1, int y1, int x2, int y2);
-
+	void updatePipeline();
+	void resetTransformations();
 	LightParams m_lights[MAX_LIGHT];	//configurable lights array
 	LightParams m_ambientLight;		//ambient light (only RGB is used)
 
 
-// Overrides
+	// Overrides
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CCGWorkView)
-	public:
+public:
 	virtual void OnDraw(CDC* pDC);  // overridden to draw this view
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
-	protected:
+protected:
 	//}}AFX_VIRTUAL
 
-// Implementation
+	// Implementation
 public:
 	virtual ~CCGWorkView();
 #ifdef _DEBUG
@@ -88,7 +90,7 @@ protected:
 	int m_WindowHeight;		// hold the windows height
 	double m_AspectRatio;		// hold the fixed Aspect Ration
 
-// Generated message map functions
+	// Generated message map functions
 protected:
 	//{{AFX_MSG(CCGWorkView)
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
@@ -117,13 +119,20 @@ protected:
 	afx_msg void OnLightShadingGouraud();
 	afx_msg void OnUpdateLightShadingGouraud(CCmdUI* pCmdUI);
 	afx_msg void OnLightConstants();
+	
+	//added functions
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp
 inline CCGWorkDoc* CCGWorkView::GetDocument()
-   { return (CCGWorkDoc*)m_pDocument; }
+{
+	return (CCGWorkDoc*)m_pDocument;
+}
 #endif
 
 /////////////////////////////////////////////////////////////////////////////

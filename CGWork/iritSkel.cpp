@@ -4,6 +4,8 @@
 
 CG_PolygonList polygons;
 double max = 0;
+int firstDraw = 0;
+
 
 /*****************************************************************************
 * Skeleton for an interface to a parser to read IRIT data files.			 *
@@ -71,9 +73,13 @@ bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles)
 	CGSkelFFCState.FourPerFlat = TRUE;/* 4 poly per ~flat patch, 2 otherwise.*/
 	CGSkelFFCState.LinearOnePolyFlag = TRUE;    /* Linear srf gen. one poly. */
 
+	polygons.clear();
+	firstDraw = 0;
+	max = 0;
 	/* Traverse ALL the parsed data, recursively. */
-	IPTraverseObjListHierarchy(PObjects, CrntViewMat, 
+	IPTraverseObjListHierarchy(PObjects, CrntViewMat,
 		CGSkelDumpOneTraversedObject);
+	firstDraw = 1;
 	return true;
 }
 
@@ -98,9 +104,9 @@ void CGSkelDumpOneTraversedObject(IPObjectStruct *PObj, IrtHmgnMatType Mat)
 	else
 		PObjs = PObj;
 
-	for (PObj = PObjs; PObj != NULL; PObj = PObj -> Pnext)
-		if (!CGSkelStoreData(PObj)) 
-			exit(1);
+	for (PObj = PObjs; PObj != NULL; PObj = PObj->Pnext)
+	if (!CGSkelStoreData(PObj))
+		exit(1);
 }
 
 /*****************************************************************************
@@ -121,15 +127,15 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 	double RGB[3], Transp;
 	IPPolygonStruct *PPolygon;
 	IPVertexStruct *PVertex;
-	IPAttributeStruct *Attrs = AttrTraceAttributes(PObj -> Attr, PObj -> Attr);
+	IPAttributeStruct *Attrs = AttrTraceAttributes(PObj->Attr, PObj->Attr);
 
-	if (PObj -> ObjType != IP_OBJ_POLY) {
+	if (PObj->ObjType != IP_OBJ_POLY) {
 		AfxMessageBox(_T("Non polygonal object detected and ignored"));
 		return true;
 	}
 
-	/* You can use IP_IS_POLYGON_OBJ(PObj) and IP_IS_POINTLIST_OBJ(PObj) 
-	   to identify the type of the object*/
+	/* You can use IP_IS_POLYGON_OBJ(PObj) and IP_IS_POINTLIST_OBJ(PObj)
+	to identify the type of the object*/
 
 	if (CGSkelGetObjectColor(PObj, RGB))
 	{
@@ -147,7 +153,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 	{
 		/* parametric texture code */
 	}
-	if (Attrs != NULL) 
+	if (Attrs != NULL)
 	{
 		printf("[OBJECT\n");
 		while (Attrs) {
@@ -155,51 +161,47 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 			Attrs = AttrTraceAttributes(Attrs, NULL);
 		}
 	}
-	//CG_PolygonList polys = MyPoly::GetInstance();
-	for (PPolygon = PObj -> U.Pl; PPolygon != NULL;	PPolygon = PPolygon -> Pnext) 
+	for (PPolygon = PObj->U.Pl; PPolygon != NULL; PPolygon = PPolygon->Pnext)
 	{
-			if (PPolygon -> PVertex == NULL) {
-				AfxMessageBox(_T("Dump: Attemp to dump empty polygon"));
-				return false;
-			}
+		if (PPolygon->PVertex == NULL) {
+			AfxMessageBox(_T("Dump: Attemp to dump empty polygon"));
+			return false;
+		}
 
-			/* Count number of vertices. */
-			for (PVertex = PPolygon -> PVertex -> Pnext, i = 1;
-				PVertex != PPolygon -> PVertex && PVertex != NULL;
-				PVertex = PVertex -> Pnext, i++);
-			/* use if(IP_HAS_PLANE_POLY(PPolygon)) to know whether a normal is defined for the polygon
-			   access the normal by the first 3 components of PPolygon->Plane */
-			PVertex = PPolygon -> PVertex;
-			CG_Polygon* poly = new CG_Polygon;
-			
-			do {			     /* Assume at least one edge in polygon! */
-				/* code handeling all vertex/normal/texture coords */
-				/* use if(IP_HAS_NORMAL_VRTX(PVertex)) to know whether a normal is defined for the vertex 
-				   access the vertex coords by PVertex->Coord
-				   access the vertex normal by PVertex->Normal */ 
-				
-				CG_Point* p = new CG_Point[3];
-				double x = PVertex->Coord[0];
-				double y = -PVertex->Coord[1];
-				double z = PVertex->Coord[2];
-				p[0] = x;
-				if (abs(x) > max)
-					max = abs(x);
-				p[1] = y;
-				if (abs(y) > max)
-					max = abs(y);
-				p[2] = z;
-				if (abs(z) > max)
-					max = abs(z);
-				poly->add(p);
-				PVertex = PVertex -> Pnext;
-			}
-			while (PVertex != PPolygon -> PVertex && PVertex != NULL);
-			polygons.add(poly);
-			/* Close the polygon. */
+		/* Count number of vertices. */
+		for (PVertex = PPolygon->PVertex->Pnext, i = 1;
+			PVertex != PPolygon->PVertex && PVertex != NULL;
+			PVertex = PVertex->Pnext, i++);
+		/* use if(IP_HAS_PLANE_POLY(PPolygon)) to know whether a normal is defined for the polygon
+		access the normal by the first 3 components of PPolygon->Plane */
+		PVertex = PPolygon->PVertex;
+		CG_Polygon* poly = new CG_Polygon;
+
+		do {			     /* Assume at least one edge in polygon! */
+			/* code handeling all vertex/normal/texture coords */
+			/* use if(IP_HAS_NORMAL_VRTX(PVertex)) to know whether a normal is defined for the vertex
+			access the vertex coords by PVertex->Coord
+			access the vertex normal by PVertex->Normal */
+
+
+			double x = PVertex->Coord[0];
+			double y = -PVertex->Coord[1];
+			double z = PVertex->Coord[2];
+			CG_Point* p = new CG_Point(x, y, z, 1);
+			if (abs(x) > max)
+				max = abs(x);
+			if (abs(y) > max)
+				max = abs(y);
+			if (abs(z) > max)
+				max = abs(z);
+			poly->add(p);
+			PVertex = PVertex->Pnext;
+		} while (PVertex != PPolygon->PVertex && PVertex != NULL);
+		polygons.add(poly);
+		/* Close the polygon. */
 	}
 	/* Close the object. */
-	
+
 	return true;
 }
 
@@ -217,47 +219,47 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 int CGSkelGetObjectColor(IPObjectStruct *PObj, double RGB[3])
 {
 	static int TransColorTable[][4] = {
-		{ /* BLACK	*/   0,    0,   0,   0 },
-		{ /* BLUE	*/   1,    0,   0, 255 },
-		{ /* GREEN	*/   2,    0, 255,   0 },
-		{ /* CYAN	*/   3,    0, 255, 255 },
-		{ /* RED	*/   4,  255,   0,   0 },
-		{ /* MAGENTA 	*/   5,  255,   0, 255 },
-		{ /* BROWN	*/   6,   50,   0,   0 },
-		{ /* LIGHTGRAY	*/   7,  127, 127, 127 },
-		{ /* DARKGRAY	*/   8,   63,  63,  63 },
-		{ /* LIGHTBLUE	*/   9,    0,   0, 255 },
-		{ /* LIGHTGREEN	*/   10,   0, 255,   0 },
-		{ /* LIGHTCYAN	*/   11,   0, 255, 255 },
-		{ /* LIGHTRED	*/   12, 255,   0,   0 },
-		{ /* LIGHTMAGENTA */ 13, 255,   0, 255 },
-		{ /* YELLOW	*/   14, 255, 255,   0 },
+		{ /* BLACK	*/   0, 0, 0, 0 },
+		{ /* BLUE	*/   1, 0, 0, 255 },
+		{ /* GREEN	*/   2, 0, 255, 0 },
+		{ /* CYAN	*/   3, 0, 255, 255 },
+		{ /* RED	*/   4, 255, 0, 0 },
+		{ /* MAGENTA 	*/   5, 255, 0, 255 },
+		{ /* BROWN	*/   6, 50, 0, 0 },
+		{ /* LIGHTGRAY	*/   7, 127, 127, 127 },
+		{ /* DARKGRAY	*/   8, 63, 63, 63 },
+		{ /* LIGHTBLUE	*/   9, 0, 0, 255 },
+		{ /* LIGHTGREEN	*/   10, 0, 255, 0 },
+		{ /* LIGHTCYAN	*/   11, 0, 255, 255 },
+		{ /* LIGHTRED	*/   12, 255, 0, 0 },
+		{ /* LIGHTMAGENTA */ 13, 255, 0, 255 },
+		{ /* YELLOW	*/   14, 255, 255, 0 },
 		{ /* WHITE	*/   15, 255, 255, 255 },
-		{ /* BROWN	*/   20,  50,   0,   0 },
-		{ /* DARKGRAY	*/   56,  63,  63,  63 },
-		{ /* LIGHTBLUE	*/   57,   0,   0, 255 },
-		{ /* LIGHTGREEN	*/   58,   0, 255,   0 },
-		{ /* LIGHTCYAN	*/   59,   0, 255, 255 },
-		{ /* LIGHTRED	*/   60, 255,   0,   0 },
-		{ /* LIGHTMAGENTA */ 61, 255,   0, 255 },
-		{ /* YELLOW	*/   62, 255, 255,   0 },
+		{ /* BROWN	*/   20, 50, 0, 0 },
+		{ /* DARKGRAY	*/   56, 63, 63, 63 },
+		{ /* LIGHTBLUE	*/   57, 0, 0, 255 },
+		{ /* LIGHTGREEN	*/   58, 0, 255, 0 },
+		{ /* LIGHTCYAN	*/   59, 0, 255, 255 },
+		{ /* LIGHTRED	*/   60, 255, 0, 0 },
+		{ /* LIGHTMAGENTA */ 61, 255, 0, 255 },
+		{ /* YELLOW	*/   62, 255, 255, 0 },
 		{ /* WHITE	*/   63, 255, 255, 255 },
-		{		     -1,   0,   0,   0 }
+		{ -1, 0, 0, 0 }
 	};
 	int i, j, Color, RGBIColor[3];
 
 	if (AttrGetObjectRGBColor(PObj,
 		&RGBIColor[0], &RGBIColor[1], &RGBIColor[2])) {
-			for (i = 0; i < 3; i++)
-				RGB[i] = RGBIColor[i] / 255.0;
+		for (i = 0; i < 3; i++)
+			RGB[i] = RGBIColor[i] / 255.0;
 
-			return TRUE;
+		return TRUE;
 	}
 	else if ((Color = AttrGetObjectColor(PObj)) != IP_ATTR_NO_COLOR) {
 		for (i = 0; TransColorTable[i][0] >= 0; i++) {
 			if (TransColorTable[i][0] == Color) {
 				for (j = 0; j < 3; j++)
-					RGB[j] = TransColorTable[i][j+1] / 255.0;
+					RGB[j] = TransColorTable[i][j + 1] / 255.0;
 				return TRUE;
 			}
 		}

@@ -53,7 +53,31 @@ public:
     mat4 operator+(mat4& rhs){
         return mat4(rows[0]+rhs[0],rows[1]+rhs[1],rows[2]+rhs[2],rows[3]+rhs[3]);
     }
+
+	static mat4 scale(const double scalar){
+		mat4 s = eye();
+		s[0][0] = s[0][0] * scalar;
+		s[1][1] = s[1][1] * scalar;
+		s[2][2] = s[2][2] * scalar;
+		return s;
+	}
+
+	static mat4 scale(vec4& v){
+		mat4 s = eye();
+		s[0][0] = s[0][0] * v[0];
+		s[1][1] = s[1][1] * v[1];
+		s[2][2] = s[2][2] * v[2];
+		return s;
+	}
     
+	void updateScale(vec4& v){
+		//mat4 s = eye();
+		(*this)[0][0] += v[0];
+		(*this)[1][1] += v[1];
+		(*this)[2][2] += v[2];
+		//return s;
+	}
+
     vec4 operator*( vec4& v){
         vec4 nv;
         for(int i=0;i<4;i++){
@@ -63,7 +87,59 @@ public:
         }
         return nv;
     }
+
+
+
+	static mat4 translate(vec4& v){
+		mat4 translate = eye();
+		translate[0][3] = translate[0][3] + v[0];
+		translate[1][3] = translate[1][3] + v[1];
+		translate[2][3] = translate[2][3] + v[2];
+		translate[3][3] = 1;
+		return translate;
+
+	}
+
+	void updateTranslate(vec4& v){
+		//mat4 translate = eye();
+		(*this)[0][3] += v[0];
+		(*this)[1][3] += v[1];
+		(*this)[2][3] += v[2];
+		//return translate;
+
+	}
     
+	static mat4 rotateX(double theta){
+		mat4 r = eye();
+		r[1][1] = cos(theta);
+		r[1][2] = -sin(theta);
+		r[2][1] = sin(theta);
+		r[2][2] = cos(theta);
+		return r;
+	}
+
+	static mat4 rotateY(double theta){
+		mat4 r = eye();
+		r[0][0] = cos(theta);
+		r[0][2] = -sin(theta);
+		r[2][0] = sin(theta);
+		r[2][2] = cos(theta);
+		return r;
+	}
+
+	static mat4 rotateZ(double theta){
+		mat4 r = eye();
+		r[0][0] = cos(theta);
+		r[0][1] = -sin(theta);
+		r[1][0] = sin(theta);
+		r[1][1] = cos(theta);
+		return r;
+	}
+
+	static mat4 rotate(double thetaX, double thetaY, double thetaZ){
+		return rotateX(thetaX)*rotateY(thetaY)*rotateZ(thetaZ);
+	}
+
     static mat4 eye(){
         mat4 m;
         m[0][0]=1.0;
@@ -219,7 +295,7 @@ public:
     
     //for now unstable, without choosing best pivot
     
-    void print(){
+  /*  void print(){
         std::cout<<"******Matrix******"<<std::endl;
         for(int i=0;i<4;i++){
             for(int j=0;j<4;j++){
@@ -228,7 +304,7 @@ public:
             std::cout<<std::endl;
         }
         std::cout<<"*******DONE*******"<<std::endl;
-    }
+    }*/
 };
 
 #endif /* mat4_hpp */
