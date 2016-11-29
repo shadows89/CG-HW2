@@ -4,6 +4,8 @@
 
 CG_PolygonList polygons;
 double max = 0;
+double maxX, maxY, maxZ;
+double minX, minY, minZ;
 int firstDraw = 0;
 
 
@@ -175,6 +177,12 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 		/* use if(IP_HAS_PLANE_POLY(PPolygon)) to know whether a normal is defined for the polygon
 		access the normal by the first 3 components of PPolygon->Plane */
 		PVertex = PPolygon->PVertex;
+		maxX = PVertex->Coord[0];
+		maxY = PVertex->Coord[1];
+		maxZ = PVertex->Coord[2];
+		minX = maxX;
+		minY = maxY;
+		minZ = maxZ;
 		CG_Polygon* poly = new CG_Polygon;
 
 		do {			     /* Assume at least one edge in polygon! */
@@ -185,7 +193,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 
 
 			double x = PVertex->Coord[0];
-			double y = -PVertex->Coord[1];
+			double y = PVertex->Coord[1];
 			double z = PVertex->Coord[2];
 			CG_Point* p = new CG_Point(x, y, z, 1);
 			if (abs(x) > max)
@@ -194,6 +202,18 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 				max = abs(y);
 			if (abs(z) > max)
 				max = abs(z);
+			if (x > maxX)
+				maxX = x;
+			if (y > maxY)
+				maxY = y;
+			if (z > maxZ)
+				maxZ = z;
+			if (x < minX)
+				minX = x;
+			if (y < minY)
+				minY = y;
+			if (z < minZ)
+				minZ = z;
 			poly->add(p);
 			PVertex = PVertex->Pnext;
 		} while (PVertex != PPolygon->PVertex && PVertex != NULL);

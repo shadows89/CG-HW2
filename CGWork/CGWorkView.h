@@ -16,6 +16,8 @@
 
 #include "Light.h"
 #include "mat4.hpp"
+#include "Camera.hpp"
+
 class CCGWorkView : public CView
 {
 protected: // create from serialization only
@@ -34,10 +36,14 @@ private:
 	int m_nAction;				// Rotate, Translate, Scale
 	int m_nView;				// Orthographic, perspective
 	bool m_bIsPerspective;			// is the view perspective
+	mat4 m_prespective = mat4::prespective(1,15);
 	mat4 m_scale = mat4::eye();
 	mat4 m_translate = mat4::translate(vec4(1, 1, 1));
 	mat4 m_rotate = mat4::rotate(0, 0, 0);
 	mat4 m_pipeline = m_scale*m_translate*m_rotate;
+	mat4 pipeline;
+	Camera camera;
+
 
 	CString m_strItdFileName;		// file name of IRIT data
 
@@ -57,6 +63,9 @@ private:
 	void resetTransformations();
 	LightParams m_lights[MAX_LIGHT];	//configurable lights array
 	LightParams m_ambientLight;		//ambient light (only RGB is used)
+
+	void OnCamButton();
+	void OnObjectButton();
 
 
 	// Overrides

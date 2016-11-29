@@ -41,6 +41,8 @@ int mousePressed = 0;
 int mouseX;
 int mouseY;
 
+
+int cam = 0;
 // Use this macro to display text messages in the status bar.
 #define STATUS_BAR_TEXT(str) (((CMainFrame*)GetParentFrame())->getStatusBar().SetWindowText(str))
 
@@ -82,6 +84,8 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_WM_MOUSEMOVE()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_LBUTTONUP()
+	ON_COMMAND(ID_CAM_BUTTON,OnCamButton)
+	ON_COMMAND(ID_OBJECT_BUTTON, OnObjectButton)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -114,6 +118,8 @@ CCGWorkView::CCGWorkView()
 
 	//init the first light to be enabled
 	m_lights[LIGHT_ID_1].enabled = true;
+
+
 }
 
 CCGWorkView::~CCGWorkView()
@@ -206,8 +212,9 @@ void CCGWorkView::resetTransformations(){
 	global_h = h;
 	global_w = w;
 
-	m_scale = mat4::scale(scale / 4);
-	m_translate = mat4::translate(vec4(mid_w, mid_h, 1));
+	camera.lookAt(vec4(0, 2*h, 50), vec4(0, 0, 0), vec4(0, -1, 0));
+	m_scale = mat4::scale(scale / 10);
+	m_translate = mat4::translate(vec4(0,0,0));
 }
 
 void CCGWorkView::OnSize(UINT nType, int cx, int cy)
@@ -252,8 +259,8 @@ BOOL CCGWorkView::OnEraseBkgnd(CDC* pDC)
 	// Windows will clear the window with the background color every time your window 
 	// is redrawn, and then CGWork will clear the viewport with its own background color.
 
-	return CView::OnEraseBkgnd(pDC);
-	//return true;
+	//return CView::OnEraseBkgnd(pDC);
+	return true;
 }
 
 
@@ -420,7 +427,7 @@ void CCGWorkView::updatePipeline(){
 	prespective[2][3] = 80;
 	prespective[3][2] = -1;
 	//m_scale = m_scale * (1/max);
-	m_pipeline = prespective*m_translate*m_scale*m_rotate;
+	m_pipeline = camera.transformation()*m_translate*m_scale*m_rotate;
 }
 
 void CCGWorkView::OnDraw(CDC* pDC)
@@ -445,7 +452,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	GetClientRect(&r);
 	int w = r.Width();
 	int h = r.Height();
-		
+
 	vec_bitmap = new std::vector<COLORREF>((w + 1)*(h + 1), RGB(255, 255, 255));
 
 	if (polygons.getSize() != 0){
@@ -718,50 +725,103 @@ void CCGWorkView::OnLButtonUp(UINT nFlags, CPoint point){
 void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point){
 	if (mousePressed){
 		double delta = mouseX - point.x;
-		switch (m_nAction){
-		case ID_ACTION_TRANSLATE:
-			switch (m_nAxis){
-			case ID_AXIS_X:
-				m_translate.updateTranslate(vec4(-delta, 0, 0));
+		if (cam){
+			switch (m_nAction){
+			case ID_ACTION_TRANSLATE:
+				switch (m_nAxis){
+				case ID_AXIS_X:
+					camera.transformation().updateTranslate(vec4(-delta, 0, 0));
+					break;
+				case ID_AXIS_Y:
+					camera.transformation().updateTranslate(vec4(0, -delta, 0));
+					break;
+				case ID_AXIS_Z:
+					camera.transformation().updateTranslate(vec4(0, 0, -delta));
+					break;
+				}
 				break;
-			case ID_AXIS_Y:
-				m_translate.updateTranslate(vec4(0, -delta, 0));
+			case ID_ACTION_ROTATE:
+				switch (m_nAxis){
+				case ID_AXIS_X:
+					camera.setTransformation(camera.transformation() * mat4::rotateX(delta / 5));
+					break;
+				case ID_AXIS_Y:
+					camera.setTransformation(camera.transformation() * mat4::rotateY(delta / 5));
+					break;
+				case ID_AXIS_Z:
+					camera.setTransformation(camera.transformation() * mat4::rotateZ(delta / 5));
+					break;
+				}
 				break;
-			case ID_AXIS_Z:
-				m_translate.updateTranslate(vec4(0, 0, -delta));
+			case ID_ACTION_SCALE:
+				switch (m_nAxis){
+				case ID_AXIS_X:
+					camera.transformation().updateScale(vec4(delta, 0, 0));
+					break;
+				case ID_AXIS_Y:
+					camera.transformation().updateScale(vec4(0, delta, 0));
+					break;
+				case ID_AXIS_Z:
+					camera.transformation().updateScale(vec4(0, 0, delta));
+					break;
+				}
 				break;
 			}
-			break;
-		case ID_ACTION_ROTATE:
-			switch (m_nAxis){
-			case ID_AXIS_X:
-				m_rotate = m_rotate * mat4::rotateX(delta/5);
-				break;
-			case ID_AXIS_Y:
-				m_rotate = m_rotate * mat4::rotateY(delta/5);
-				break;
-			case ID_AXIS_Z:
-				m_rotate = m_rotate * mat4::rotateZ(delta/5);
-				break;
-			}
-			break;
-		case ID_ACTION_SCALE:
-			switch (m_nAxis){
-			case ID_AXIS_X:
-				m_scale.updateScale(vec4(delta, 0, 0));
-				break;
-			case ID_AXIS_Y:
-				m_scale.updateScale(vec4(0, delta, 0));
-				break;
-			case ID_AXIS_Z:
-				m_scale.updateScale(vec4(0, 0, delta));
-				break;
-			}
-			break;
 		}
-		
+		else{
+			switch (m_nAction){
+			case ID_ACTION_TRANSLATE:
+				switch (m_nAxis){
+				case ID_AXIS_X:
+					m_translate.updateTranslate(vec4(-delta, 0, 0));
+					break;
+				case ID_AXIS_Y:
+					m_translate.updateTranslate(vec4(0, -delta, 0));
+					break;
+				case ID_AXIS_Z:
+					m_translate.updateTranslate(vec4(0, 0, -delta));
+					break;
+				}
+				break;
+			case ID_ACTION_ROTATE:
+				switch (m_nAxis){
+				case ID_AXIS_X:
+					m_rotate = m_rotate * mat4::rotateX(delta / 5);
+					break;
+				case ID_AXIS_Y:
+					m_rotate = m_rotate * mat4::rotateY(delta / 5);
+					break;
+				case ID_AXIS_Z:
+					m_rotate = m_rotate * mat4::rotateZ(delta / 5);
+					break;
+				}
+				break;
+			case ID_ACTION_SCALE:
+				switch (m_nAxis){
+				case ID_AXIS_X:
+					m_scale.updateScale(vec4(delta, 0, 0));
+					break;
+				case ID_AXIS_Y:
+					m_scale.updateScale(vec4(0, delta, 0));
+					break;
+				case ID_AXIS_Z:
+					m_scale.updateScale(vec4(0, 0, delta));
+					break;
+				}
+				break;
+			}
+
+		}
 		Invalidate();
 	}
 	mouseX = point.x;
 	mouseY = point.y;
+}
+
+void CCGWorkView::OnCamButton(){
+	cam = 1;
+}
+
+void CCGWorkView::OnObjectButton(){
+	cam = 0;
 }

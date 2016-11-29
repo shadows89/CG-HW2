@@ -1,10 +1,12 @@
-﻿Build started 11/27/2016 21:12:08.
-     1>Project "B:\234325\skeleton_2013 efi\CGWork\CGWork.vcxproj" on node 2 (Build target(s)).
+﻿Build started 11/28/2016 20:26:19.
+     1>Project "B:\234325\CG-HW2\CGWork\CGWork.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I..\pngLib /I..\include /Zi /nologo /W3 /WX- /O2 /Ob1 /Oy- /D WIN32 /D NDEBUG /D _WINDOWS /D WINVER=0x501 /D NO_WARN_MBCS_MFC_DEPRECATION /D _VC80_UPGRADE=0x0710 /D _UNICODE /D UNICODE /D _AFXDLL /GF /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo".\Release/" /Fd".\Release/vc120.pdb" /FR".\Release\\" /Gd /TP /wd4273 /wd4996 /wd4800 /analyze- /errorReport:prompt CGWorkView.cpp
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I..\pngLib /I..\include /Zi /nologo /W3 /WX- /O2 /Ob1 /Oy- /D WIN32 /D NDEBUG /D _WINDOWS /D WINVER=0x501 /D NO_WARN_MBCS_MFC_DEPRECATION /D _VC80_UPGRADE=0x0710 /D _UNICODE /D UNICODE /D _AFXDLL /GF /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo".\Release/" /Fd".\Release/vc120.pdb" /FR".\Release\\" /Gd /TP /wd4273 /wd4996 /wd4800 /analyze- /errorReport:prompt CGWork.cpp CGWorkView.cpp
+         CGWork.cpp
          CGWorkView.cpp
-     1>CGWorkView.cpp(463): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
-     1>CGWorkView.cpp(476): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+     1>CGWorkView.cpp(480): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+     1>CGWorkView.cpp(493): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+         Generating Code...
        Link:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"..\bin\Release\CGWork.exe" /INCREMENTAL:NO /NOLOGO /LIBPATH:..\pngLib /LIBPATH:..\iritLib GLU32.LIB zlib.lib libpng.lib irit.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /manifestinput:"C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\Include\Manifest\dpiaware.manifest" /PDB:".\Release/CGWork.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /ENTRY:"wWinMainCRTStartup" /DYNAMICBASE:NO /IMPLIB:"..\bin\Release\CGWork.lib" /MACHINE:X86 /SAFESEH .\Release\CGWork.res
          .\Release/CGWork.obj
@@ -16,11 +18,11 @@
          .\Release/MaterialDlg.obj
          .\Release/PngWrapper.obj
          .\Release/StdAfx.obj
-         CGWork.vcxproj -> B:\234325\skeleton_2013 efi\CGWork\..\bin\Release\CGWork.exe
+         CGWork.vcxproj -> B:\234325\CG-HW2\CGWork\..\bin\Release\CGWork.exe
        BscMake:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\bscmake.exe /nologo /o"..\bin\Release\CGWork.bsc" .\Release\CGWork.sbr .\Release\CGWorkDoc.sbr .\Release\CGWorkView.sbr .\Release\iritSkel.sbr .\Release\LightDialog.sbr .\Release\MainFrm.sbr .\Release\MaterialDlg.sbr .\Release\PngWrapper.sbr .\Release\StdAfx.sbr
-     1>Done Building Project "B:\234325\skeleton_2013 efi\CGWork\CGWork.vcxproj" (Build target(s)).
+     1>Done Building Project "B:\234325\CG-HW2\CGWork\CGWork.vcxproj" (Build target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:05.22
+Time Elapsed 00:00:07.78

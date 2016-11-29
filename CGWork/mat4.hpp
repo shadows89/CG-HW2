@@ -54,6 +54,16 @@ public:
         return mat4(rows[0]+rhs[0],rows[1]+rhs[1],rows[2]+rhs[2],rows[3]+rhs[3]);
     }
 
+	void transpose(){
+		for (int i = 0; i < 4; i++){
+			for (int j = i; j < 4; j++){
+				double t = rows[j][i];
+				rows[j][i] = rows[i][j];
+				rows[i][j] = t;
+			}
+		}
+	}
+
 	static mat4 scale(const double scalar){
 		mat4 s = eye();
 		s[0][0] = s[0][0] * scalar;
@@ -72,9 +82,9 @@ public:
     
 	void updateScale(vec4& v){
 		//mat4 s = eye();
-		(*this)[0][0] += v[0];
-		(*this)[1][1] += v[1];
-		(*this)[2][2] += v[2];
+		rows[0][0] += v[0];
+		rows[1][1] += v[1];
+		rows[2][2] += v[2];
 		//return s;
 	}
 
@@ -102,13 +112,28 @@ public:
 
 	void updateTranslate(vec4& v){
 		//mat4 translate = eye();
-		(*this)[0][3] += v[0];
-		(*this)[1][3] += v[1];
-		(*this)[2][3] += v[2];
+		rows[0][3] += v[0];
+		rows[1][3] += v[1];
+		rows[2][3] += v[2];
 		//return translate;
 
 	}
     
+	static mat4 prespective(double alpha, double d){
+		mat4 prespective = eye();
+		prespective[2][2] = d / (d - alpha);
+		prespective[3][2] = 1 / d;
+		prespective[2][3] = -(alpha * d) / (d - alpha);
+		prespective[3][3] = 0;
+		return prespective;
+	}
+
+	static mat4 orthogonal (){
+		mat4 orthogonal = eye();
+		orthogonal[2][2] = 0;
+		return orthogonal;
+	}
+
 	static mat4 rotateX(double theta){
 		mat4 r = eye();
 		r[1][1] = cos(theta);

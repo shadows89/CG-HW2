@@ -31,6 +31,27 @@ public:
     double& operator[](const int index){
         return coords[index];
     }
+	vec4 operator-(const vec4& v){
+		return vec4(coords[0] - v.coords[0], coords[1] - v.coords[1], coords[2] - v.coords[2], coords[3] - v.coords[3]);
+	}
+
+	vec4 operator-(){
+		return (*this)*(-1);
+	}
+
+	static vec4 normalize(vec4 v){
+		double norm = sqrt(pow(v[0], 2) + pow(v[1], 2) + pow(v[2], 2) + pow(v[3], 2));
+		vec4 normalized;
+		normalized[0] = v[0] / norm;
+		normalized[1] = v[1] / norm;
+		normalized[2] = v[2] / norm;
+		normalized[3] = v[3] / norm;
+		return normalized;
+	}
+
+	static vec4 cross(vec4& v1, vec4& v2){
+		return vec4(v1[1] * v2[2] - v1[2] * v2[1], v1[2] * v2[0] - v1[0] * v2[2], v1[0] * v2[1] - v1[1] * v2[0]);
+	}
     
 };
 #endif /* vec4_hpp */
