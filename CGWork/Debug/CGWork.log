@@ -1,10 +1,12 @@
-﻿Build started 11/29/2016 03:24:40.
+﻿Build started 12/3/2016 16:45:38.
      1>Project "B:\234325\CG-HW2\CGWork\CGWork.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I..\pngLib /I..\include /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _WINDOWS /D WINVER=0x501 /D NO_WARN_MBCS_MFC_DEPRECATION /D _VC80_UPGRADE=0x0710 /D _UNICODE /D UNICODE /D _AFXDLL /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo".\Debug/" /Fd".\Debug/vc120.pdb" /Gd /TP /wd4273 /wd4996 /wd4800 /analyze- /errorReport:prompt CGWorkView.cpp
          CGWorkView.cpp
-     1>b:\234325\cg-hw2\cgwork\cgworkview.cpp(470): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
-     1>b:\234325\cg-hw2\cgwork\cgworkview.cpp(483): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+     1>b:\234325\cg-hw2\cgwork\cgworkview.cpp(534): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+     1>b:\234325\cg-hw2\cgwork\cgworkview.cpp(536): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+     1>b:\234325\cg-hw2\cgwork\cgworkview.cpp(550): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+     1>b:\234325\cg-hw2\cgwork\cgworkview.cpp(552): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
        Link:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"..\bin\Debug\CGWork.exe" /INCREMENTAL /NOLOGO /LIBPATH:..\pngLib /LIBPATH:..\iritLib GLU32.LIB zlibd.lib libpngd.lib iritD.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /manifestinput:"C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\Include\Manifest\dpiaware.manifest" /DEBUG /PDB:".\Debug/CGWork.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /ENTRY:"wWinMainCRTStartup" /DYNAMICBASE:NO /IMPLIB:"..\bin\Debug\CGWork.lib" /MACHINE:X86 /SAFESEH .\Debug\CGWork.res
          .\Debug/CGWork.obj
@@ -21,4 +23,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:02.37
+Time Elapsed 00:00:02.67

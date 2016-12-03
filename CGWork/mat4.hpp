@@ -112,18 +112,19 @@ public:
 
 	void updateTranslate(vec4& v){
 		//mat4 translate = eye();
-		rows[0][3] += v[0];
-		rows[1][3] += v[1];
-		rows[2][3] += v[2];
+		(*this)[0][3] += v[0];
+		(*this)[1][3] += v[1];
+		(*this)[2][3] += v[2];
 		//return translate;
 
 	}
     
-	static mat4 prespective(double alpha, double d){
+	static mat4 prespective(double d){
 		mat4 prespective = eye();
-		prespective[2][2] = d / (d - alpha);
-		prespective[3][2] = 1 / d;
-		prespective[2][3] = -(alpha * d) / (d - alpha);
+		prespective[3][2] = 1/d;
+		//prespective[2][3] = beta;
+		//prespective[3][2] = -1;
+		//prespective[2][3] = -(alpha * d) / (d - alpha);
 		prespective[3][3] = 0;
 		return prespective;
 	}

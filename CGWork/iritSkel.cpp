@@ -2,7 +2,7 @@
 #include "iritSkel.h"
 
 
-CG_PolygonList polygons;
+CG_ModelList models;
 double max = 0;
 double maxX, maxY, maxZ;
 double minX, minY, minZ;
@@ -75,7 +75,7 @@ bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles)
 	CGSkelFFCState.FourPerFlat = TRUE;/* 4 poly per ~flat patch, 2 otherwise.*/
 	CGSkelFFCState.LinearOnePolyFlag = TRUE;    /* Linear srf gen. one poly. */
 
-	polygons.clear();
+	models.clear();
 	firstDraw = 0;
 	max = 0;
 	/* Traverse ALL the parsed data, recursively. */
@@ -107,8 +107,8 @@ void CGSkelDumpOneTraversedObject(IPObjectStruct *PObj, IrtHmgnMatType Mat)
 		PObjs = PObj;
 
 	for (PObj = PObjs; PObj != NULL; PObj = PObj->Pnext)
-	if (!CGSkelStoreData(PObj))
-		exit(1);
+		if (!CGSkelStoreData(PObj))
+			exit(1);
 }
 
 /*****************************************************************************
@@ -126,11 +126,13 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 {
 	int i;
 	const char *Str;
-	double RGB[3], Transp;
+	double _RGB[3], Transp;
 	IPPolygonStruct *PPolygon;
 	IPVertexStruct *PVertex;
 	IPAttributeStruct *Attrs = AttrTraceAttributes(PObj->Attr, PObj->Attr);
-
+	_RGB[0] = 0;
+	_RGB[1] = 0;
+	_RGB[2] = 0;
 	if (PObj->ObjType != IP_OBJ_POLY) {
 		AfxMessageBox(_T("Non polygonal object detected and ignored"));
 		return true;
@@ -139,7 +141,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 	/* You can use IP_IS_POLYGON_OBJ(PObj) and IP_IS_POINTLIST_OBJ(PObj)
 	to identify the type of the object*/
 
-	if (CGSkelGetObjectColor(PObj, RGB))
+	if (CGSkelGetObjectColor(PObj, _RGB))
 	{
 		/* color code */
 	}
@@ -163,10 +165,12 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 			Attrs = AttrTraceAttributes(Attrs, NULL);
 		}
 	}
+	Model* model = new Model(new CG_PolygonList, new CG_NormalList, new CG_NormalList, RGB(255 * _RGB[0], 255 * _RGB[1], 255 * _RGB[2]));
 	for (PPolygon = PObj->U.Pl; PPolygon != NULL; PPolygon = PPolygon->Pnext)
 	{
 		if (PPolygon->PVertex == NULL) {
 			AfxMessageBox(_T("Dump: Attemp to dump empty polygon"));
+			delete model;
 			return false;
 		}
 
@@ -196,6 +200,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 			double y = PVertex->Coord[1];
 			double z = PVertex->Coord[2];
 			CG_Point* p = new CG_Point(x, y, z, 1);
+			CG_Point* v = new CG_Point(x, y, z, 1);
 			if (abs(x) > max)
 				max = abs(x);
 			if (abs(y) > max)
@@ -215,11 +220,20 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 			if (z < minZ)
 				minZ = z;
 			poly->add(p);
+			model->vertices->add(v);
+			if (IP_HAS_NORMAL_VRTX(PVertex)){
+				model->vertexNormals->add(new vec4(PVertex->Normal[0], PVertex->Normal[1], PVertex->Normal[2]));
+			}
 			PVertex = PVertex->Pnext;
 		} while (PVertex != PPolygon->PVertex && PVertex != NULL);
-		polygons.add(poly);
+		if (IP_HAS_PLANE_POLY(PPolygon))
+			model->polygonNormals->add(new vec4(PPolygon->Plane[0], PPolygon->Plane[1], PPolygon->Plane[2]));
+		
+		model->polygons->add(poly);
 		/* Close the polygon. */
 	}
+	models.add(model);
+	model->calculatePolygonNormals();
 	/* Close the object. */
 
 	return true;

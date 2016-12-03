@@ -106,6 +106,25 @@ BEGIN
         END
         MENUITEM "&Parameters...",              ID_LIGHT_CONSTANTS
     END
+    POPUP "Color"
+    BEGIN
+        MENUITEM "Model",                       ID_COLOR_MODEL
+        MENUITEM "Background",                  ID_COLOR_BACKGROUND
+        MENUITEM "Normals",                     ID_COLOR_NORMALS
+    END
+    POPUP "Normal"
+    BEGIN
+        POPUP "Polygon"
+        BEGIN
+            MENUITEM "Given",                       ID_POLYGON_GIVEN
+            MENUITEM "Calculated",                  ID_POLYGON_CALCULATED
+        END
+        POPUP "Vertex"
+        BEGIN
+            MENUITEM "Given",                       ID_VERTEX_GIVEN
+            MENUITEM "Calculated",                  ID_VERTEX_CALCULATED
+        END
+    END
     POPUP "&Help"
     BEGIN
         MENUITEM "&About CGWork...",            ID_APP_ABOUT

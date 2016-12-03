@@ -36,12 +36,12 @@ private:
 	int m_nAction;				// Rotate, Translate, Scale
 	int m_nView;				// Orthographic, perspective
 	bool m_bIsPerspective;			// is the view perspective
-	mat4 m_prespective = mat4::prespective(1,15);
+	mat4 m_prespective = mat4::prespective(-1);
 	mat4 m_scale = mat4::eye();
 	mat4 m_translate = mat4::translate(vec4(1, 1, 1));
 	mat4 m_rotate = mat4::rotate(0, 0, 0);
 	mat4 m_pipeline = m_scale*m_translate*m_rotate;
-	mat4 pipeline;
+	mat4 s_scale;
 	Camera camera;
 
 
@@ -64,8 +64,6 @@ private:
 	LightParams m_lights[MAX_LIGHT];	//configurable lights array
 	LightParams m_ambientLight;		//ambient light (only RGB is used)
 
-	void OnCamButton();
-	void OnObjectButton();
 
 
 	// Overrides
@@ -130,9 +128,19 @@ protected:
 	afx_msg void OnLightConstants();
 	
 	//added functions
+	afx_msg void OnCamButton();
+	afx_msg void OnUpdateCamButton(CCmdUI* pCmdUI);
+	afx_msg void OnObjectButton();
+	afx_msg void OnUpdateObjectButton(CCmdUI* pCmdUI);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnModelColorUpdate();
+	afx_msg void OnBackgroundColorUpdate();
+	afx_msg void OnNormalPolygonGiven();
+	afx_msg void OnNormalVertexGiven();
+	afx_msg void OnNormalPolygonGivenCheck(CCmdUI* pCmdUI);
+	afx_msg void OnNormalVertexGivenCheck(CCmdUI* pCmdUI);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

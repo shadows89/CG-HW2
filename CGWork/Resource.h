@@ -52,16 +52,25 @@
 #define ID_BUTTON_SUBDIVIDE             32797
 #define ID_OPTIONS_PERSPECTIVECONTROL   32798
 #define ID_OPTIONS_MOUSESENSITIVITY     32799
-#define ID_BUTTON32802                  32802
 #define ID_OBJECT_BUTTON                32802
 #define ID_CAM_BUTTON                   32803
+#define ID_COLOR_MODEL                  32804
+#define ID_COLOR_OBJECT                 32805
+#define ID_COLOR_BACKGROUND             32806
+#define ID_COLOR_NORMALS                32807
+#define ID_NORMAL_POLYGON               32808
+#define ID_NORMAL_VERTEX                32809
+#define ID_POLYGON_GIVEN                32810
+#define ID_POLYGON_CALCULATED           32811
+#define ID_VERTEX_GIVEN                 32812
+#define ID_VERTEX_CALCULATED            32813
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        139
-#define _APS_NEXT_COMMAND_VALUE         32804
+#define _APS_NEXT_COMMAND_VALUE         32814
 #define _APS_NEXT_CONTROL_VALUE         1040
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

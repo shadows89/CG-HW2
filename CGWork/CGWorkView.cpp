@@ -27,10 +27,10 @@ static char THIS_FILE[] = __FILE__;
 
 #include "LinkedList.h"
 
-extern CG_PolygonList polygons;
+extern CG_ModelList models;
 extern double max;
 extern int firstDraw;
-
+extern double maxX, minX, maxY, minY, maxZ, minZ;
 //Drawing Globals
 std::vector<COLORREF>* vec_bitmap = NULL;
 int global_h;
@@ -42,7 +42,17 @@ int mouseX;
 int mouseY;
 
 
+int scale;
+
 int cam = 0;
+int colorNotChange = 1;
+COLORREF modelColor;
+COLORREF backgroundColor = RGB(0, 0, 0);
+
+bool polygonNormals = FALSE;
+bool vertexNormals = FALSE;
+bool polyGiven = FALSE;
+bool vertexGiven = FALSE;
 // Use this macro to display text messages in the status bar.
 #define STATUS_BAR_TEXT(str) (((CMainFrame*)GetParentFrame())->getStatusBar().SetWindowText(str))
 
@@ -84,8 +94,16 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_WM_MOUSEMOVE()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_LBUTTONUP()
-	ON_COMMAND(ID_CAM_BUTTON,OnCamButton)
+	ON_COMMAND(ID_CAM_BUTTON, OnCamButton)
+	ON_UPDATE_COMMAND_UI(ID_CAM_BUTTON , OnUpdateCamButton)
 	ON_COMMAND(ID_OBJECT_BUTTON, OnObjectButton)
+	ON_UPDATE_COMMAND_UI(ID_OBJECT_BUTTON, OnUpdateObjectButton)
+	ON_COMMAND(ID_COLOR_MODEL,OnModelColorUpdate)
+	ON_COMMAND(ID_COLOR_BACKGROUND, OnBackgroundColorUpdate)
+	ON_COMMAND(ID_POLYGON_GIVEN,OnNormalPolygonGiven)
+	ON_COMMAND(ID_POLYGON_CALCULATED, NULL)
+	ON_COMMAND(ID_VERTEX_GIVEN, OnNormalVertexGiven)
+	ON_COMMAND(ID_VERTEX_CALCULATED, NULL)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -203,7 +221,6 @@ void CCGWorkView::resetTransformations(){
 	int h = r.Height();
 	int mid_w = w / 2;
 	int mid_h = h / 2;
-	int scale = 0;
 	if (w > h)
 		scale = mid_h;
 	else
@@ -212,9 +229,11 @@ void CCGWorkView::resetTransformations(){
 	global_h = h;
 	global_w = w;
 
-	camera.lookAt(vec4(0, 2*h, 50), vec4(0, 0, 0), vec4(0, -1, 0));
-	m_scale = mat4::scale(scale / 10);
-	m_translate = mat4::translate(vec4(0,0,0));
+	
+	camera.lookAt(vec4(0, 0, 2), vec4(0, 0, 0), vec4(0, -1, 0));
+	m_scale = mat4::scale(1/max);
+	m_translate = mat4::translate(vec4(0, 0, 0));
+	m_rotate = mat4::rotate(0, 0, 0);
 }
 
 void CCGWorkView::OnSize(UINT nType, int cx, int cy)
@@ -268,7 +287,7 @@ BOOL CCGWorkView::OnEraseBkgnd(CDC* pDC)
 
 void plotPixel(int x, int y){
 	if (x >= 0 && x <= global_w && y >= 0 && y <= global_h)
-		(*vec_bitmap)[x + y*global_w] = RGB(0, 0, 0);
+			(*vec_bitmap)[x + y*global_w] = modelColor;
 }
 
 void CCGWorkView::line(int x1, int y1, int x2, int y2){
@@ -421,13 +440,54 @@ void CCGWorkView::updatePipeline(){
 	//mat4 scaleMat = mat4::scale(scale);
 	//mat4 rotate = mat4::rotate(xTheta,yTheta, zTheta);
 	//mat4 translation = mat4::translate(vec4(mid_w, mid_h, 1));
-	mat4 prespective = mat4::eye();
+	/*mat4 prespective = mat4::eye();
 	prespective[3][3] = 0;
 	prespective[2][2] = 15;
 	prespective[2][3] = 80;
-	prespective[3][2] = -1;
+	prespective[3][2] = -1;*/
 	//m_scale = m_scale * (1/max);
-	m_pipeline = camera.transformation()*m_translate*m_scale*m_rotate;
+	//m_pipeline = m_prespective*camera.transformation()*m_translate*m_scale*m_rotate;
+	
+	/*mat4 s1 = mat4::scale(vec4(2.0 / (maxX - minX), 2.0 / (maxY - minY), 2.0 / (maxZ - minZ), 1));
+	mat4 t1 = mat4::translate(vec4(-(maxX + minX) / 2.0, -(maxY + minY) / 2.0, -(maxZ + minZ) / 2.0, 1));
+
+	/*mat4 s2 = mat4::scale(vec4(global_w / 2, global_h / 2, 1, 1));
+	mat4 t2 = mat4::translate(vec4((global_w - 1) / 2, (global_h - 1) / 2, 0, 1));
+	
+	mat4 t2 = mat4::translate(vec4((global_w - 1) / 2, (global_h - 1) / 2, 0, 1));
+	mat4 s2 = mat4::scale(scale/5);
+	mat4 l = t2*s2;
+	mat4 r = s1*t1;
+	mat4 projection = l*r;
+	camera.setProjection(projection);
+	//camera.lookAt(vec4(maxX, maxY, maxZ), vec4(minX, minY, minZ), vec4(0, -1, 0));
+	m_pipeline = camera.transformation().inverse()*m_translate*m_scale*m_rotate;
+	m_pipeline = camera.projection()*m_pipeline;*/
+	//mat4 prespective = mat4::prespective((maxZ + minZ) / (minZ - maxZ), (2*maxZ * minZ) / (maxZ - minZ));
+	//mat4 p = mat4::prespective(1);
+	camera.setProjection(mat4::translate(vec4(global_w/4, 0, 0))*mat4::scale(scale));
+	if (m_bIsPerspective)
+		m_pipeline = camera.projection()*mat4::prespective(-1)*camera.transformation().inverse()*m_translate*m_scale*m_rotate;
+	else
+		m_pipeline = camera.projection()*camera.transformation().inverse()*m_translate*m_scale*m_rotate;
+	/*mat4 s1 = mat4::scale(vec4(2.0 / (maxX - minX + 2), 2.0 / (maxY - minY + 2), 2.0 / (maxZ - minZ + 2), 1));
+	mat4 t1 = mat4::translate(vec4(-(maxX + minX) / 2.0, -(maxY + minY) / 2.0, -(maxZ + minZ) / 2.0, 1));
+
+	mat4 s2 = mat4::scale(vec4(global_w / 2, global_h / 2, 1, 1));
+	mat4 t2 = mat4::translate(vec4((global_w - 1) / 2, (global_h - 1) / 2, 0, 1));
+	mat4 l = t2*s2;
+	mat4 r = s1*t1;
+	mat4 projection = l*r;
+	camera.setProjection(projection);
+
+
+	mat4 prespective = mat4::eye();
+	prespective[3][3] = 0;
+	prespective[2][2] = 2;
+	prespective[2][3] = 3;
+	prespective[3][2] = -1;
+
+	m_pipeline = camera.projection()*prespective*camera.transformation().inverse()*m_translate*m_scale*m_rotate;*/
 }
 
 void CCGWorkView::OnDraw(CDC* pDC)
@@ -453,35 +513,53 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	int w = r.Width();
 	int h = r.Height();
 
-	vec_bitmap = new std::vector<COLORREF>((w + 1)*(h + 1), RGB(255, 255, 255));
+	vec_bitmap = new std::vector<COLORREF>((w + 1)*(h + 1), backgroundColor);
 
-	if (polygons.getSize() != 0){
+	if (models.getSize() != 0){
 		CG_Point* p1;
 		CG_Point* p2;
 		CG_Point* tmp;
-		for (CG_Polygon* polygon = polygons.first(); polygon != NULL; polygon = polygons.next()){
-			p1 = polygon->first();
-			p2 = polygon->next();
-			while (true){
-				/*vec4 p1Offset = *p1*(scale / max);
-				vec4 p2Offset = *p2*(scale / max);*/
+		for (Model* model = models.first(); model != NULL; model = models.next()){
+			if(colorNotChange)
+				modelColor = model->color;
+			for (CG_Polygon* polygon = model->polygons->first(); polygon != NULL; polygon = model->polygons->next()){
+				p1 = polygon->first();
+				p2 = polygon->next();
+				while (true){
+					/*vec4 p1Offset = *p1*(scale / max);
+					vec4 p2Offset = *p2*(scale / max);*/
+					vec4 p1Offset = m_pipeline*(*p1);
+					vec4 p2Offset = m_pipeline*(*p2);
+					if (m_bIsPerspective)
+						line(p1Offset[0] / p1Offset[3], p1Offset[1] / p1Offset[3], p2Offset[0] / p2Offset[3], p2Offset[1] / p2Offset[3]);
+					else
+						line(p1Offset[0], p1Offset[1], p2Offset[0], p2Offset[1]);
+					//line(mid_w + p1Offset[0], mid_h + p1Offset[1], mid_w + p2Offset[0], mid_h + p2Offset[1]);
+					tmp = p2;
+					p2 = polygon->next();
+					p1 = tmp;
+					if (p2 == NULL){
+						p2 = polygon->first();
+						break;
+					}
+				}
+
 				vec4 p1Offset = m_pipeline*(*p1);
 				vec4 p2Offset = m_pipeline*(*p2);
-				line(p1Offset[0], p1Offset[1], p2Offset[0], p2Offset[1]);
+				if (m_bIsPerspective)
+					line(p1Offset[0] / p1Offset[3], p1Offset[1] / p1Offset[3], p2Offset[0] / p2Offset[3], p2Offset[1] / p2Offset[3]);
+				else
+					line(p1Offset[0], p1Offset[1], p2Offset[0], p2Offset[1]);
 				//line(mid_w + p1Offset[0], mid_h + p1Offset[1], mid_w + p2Offset[0], mid_h + p2Offset[1]);
-				tmp = p2;
-				p2 = polygon->next();
-				p1 = tmp;
-				if (p2 == NULL){
-					p2 = polygon->first();
-					break;
-				}
 			}
+			/*if (polygonNormals){
+				if (polyGiven)
+					for (CG_Point* point = model->polygonNormals->first(); point != NULL;
+										point = model->polygonNormals->next()){
 
-			vec4 p1Offset = m_pipeline*(*p1);
-			vec4 p2Offset = m_pipeline*(*p2);
-			line(p1Offset[0], p1Offset[1], p2Offset[0], p2Offset[1]);
-			//line(mid_w + p1Offset[0], mid_h + p1Offset[1], mid_w + p2Offset[0], mid_h + p2Offset[1]);
+					}
+				else{}
+			}*/
 		}
 	}
 	CBitmap bitmap;
@@ -773,13 +851,13 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point){
 			case ID_ACTION_TRANSLATE:
 				switch (m_nAxis){
 				case ID_AXIS_X:
-					m_translate.updateTranslate(vec4(-delta, 0, 0));
+					m_translate.updateTranslate(vec4(delta, 0, 0));
 					break;
 				case ID_AXIS_Y:
-					m_translate.updateTranslate(vec4(0, -delta, 0));
+					m_translate.updateTranslate(vec4(0, delta, 0));
 					break;
 				case ID_AXIS_Z:
-					m_translate.updateTranslate(vec4(0, 0, -delta));
+					m_translate.updateTranslate(vec4(0, 0, delta));
 					break;
 				}
 				break;
@@ -824,4 +902,49 @@ void CCGWorkView::OnCamButton(){
 
 void CCGWorkView::OnObjectButton(){
 	cam = 0;
+}
+
+void CCGWorkView::OnUpdateCamButton(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(cam == 1);
+}
+
+void CCGWorkView::OnUpdateObjectButton(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(cam == 0);
+}
+
+void CCGWorkView::OnModelColorUpdate(){
+	CColorDialog color;
+	color.DoModal();
+	modelColor = color.GetColor();
+	colorNotChange = 0;
+	Invalidate();
+}
+
+void CCGWorkView::OnBackgroundColorUpdate(){
+	CColorDialog color;
+	color.DoModal();
+	backgroundColor = color.GetColor();
+	Invalidate();
+}
+
+void CCGWorkView::OnNormalPolygonGiven(){
+	polygonNormals = !polygonNormals;
+	polyGiven = TRUE;
+	Invalidate();
+}
+
+void CCGWorkView::OnNormalPolygonGivenCheck(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(polygonNormals);
+}
+
+void CCGWorkView::OnNormalVertexGiven(){
+
+}
+
+void CCGWorkView::OnNormalVertexGivenCheck(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(vertexNormals);
 }

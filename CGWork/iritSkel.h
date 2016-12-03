@@ -14,15 +14,7 @@
 #include "allocate.h"
 #include "ip_cnvrt.h"
 #include "symb_lib.h"
-#include <vector>
-#include "LinkedList.h"
-#include "vec4.hpp"
-
-
-typedef vec4 CG_Point;
-typedef LinkedList<CG_Point*> CG_Polygon;
-typedef LinkedList<CG_Polygon*> CG_PolygonList;
-
+#include "Model.h"
 //typedef double CG_Point;
 //typedef LinkedList<CG_Point*> CG_Polygon;
 //typedef LinkedList<CG_Polygon*> CG_PolygonList;
