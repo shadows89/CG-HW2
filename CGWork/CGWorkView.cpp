@@ -48,11 +48,13 @@ int cam = 0;
 int colorNotChange = 1;
 COLORREF modelColor;
 COLORREF backgroundColor = RGB(0, 0, 0);
+COLORREF normalColor = RGB(0, 0, 255);
 
 bool polygonNormals = FALSE;
 bool vertexNormals = FALSE;
 bool polyGiven = FALSE;
 bool vertexGiven = FALSE;
+bool drawNormals = FALSE;
 // Use this macro to display text messages in the status bar.
 #define STATUS_BAR_TEXT(str) (((CMainFrame*)GetParentFrame())->getStatusBar().SetWindowText(str))
 
@@ -95,13 +97,15 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_WM_LBUTTONDOWN()
 	ON_WM_LBUTTONUP()
 	ON_COMMAND(ID_CAM_BUTTON, OnCamButton)
-	ON_UPDATE_COMMAND_UI(ID_CAM_BUTTON , OnUpdateCamButton)
+	ON_UPDATE_COMMAND_UI(ID_CAM_BUTTON, OnUpdateCamButton)
 	ON_COMMAND(ID_OBJECT_BUTTON, OnObjectButton)
 	ON_UPDATE_COMMAND_UI(ID_OBJECT_BUTTON, OnUpdateObjectButton)
-	ON_COMMAND(ID_COLOR_MODEL,OnModelColorUpdate)
+	ON_COMMAND(ID_COLOR_MODEL, OnModelColorUpdate)
 	ON_COMMAND(ID_COLOR_BACKGROUND, OnBackgroundColorUpdate)
-	ON_COMMAND(ID_POLYGON_GIVEN,OnNormalPolygonGiven)
-	ON_COMMAND(ID_POLYGON_CALCULATED, NULL)
+	ON_COMMAND(ID_POLYGON_GIVEN, OnNormalPolygonGiven)
+	ON_COMMAND(ID_POLYGON_CALCULATED, OnNormalPolygonCalculated)
+	ON_UPDATE_COMMAND_UI(ID_POLYGON_GIVEN, OnNormalPolygonGivenCheck)
+	ON_UPDATE_COMMAND_UI(ID_POLYGON_CALCULATED, OnNormalPolygonCalculatedCheck)
 	ON_COMMAND(ID_VERTEX_GIVEN, OnNormalVertexGiven)
 	ON_COMMAND(ID_VERTEX_CALCULATED, NULL)
 	//}}AFX_MSG_MAP
@@ -136,6 +140,9 @@ CCGWorkView::CCGWorkView()
 
 	//init the first light to be enabled
 	m_lights[LIGHT_ID_1].enabled = true;
+
+
+	firstDraw = 1;
 
 
 }
@@ -229,11 +236,24 @@ void CCGWorkView::resetTransformations(){
 	global_h = h;
 	global_w = w;
 
-	
-	camera.lookAt(vec4(0, 0, 2), vec4(0, 0, 0), vec4(0, -1, 0));
-	m_scale = mat4::scale(1/max);
+	/*if (firstDraw){
+		camera.lookAt(vec4(0,0, 0), vec4(0,0, -1), vec4(0, -1, 0));
+		m_scale = mat4::scale(1/max);
+		m_translate = mat4::translate(vec4(0, 0, 0));
+		//m_rotate = mat4::rotate(0, 0, 0);
+	}*/
+	double R = maxX, L = minX, T = maxY, B = minY;
+	double F = minZ, N = maxZ;
+
+	/*camera.lookAt(vec4((R + L) / 2, (T + B) / 2, N + 1, 1), vec4((R + L) / 2, (T + B) / 2, N,1), vec4(0, -1, 0));*/
+	//camera.lookAt(vec4(0.5, 0.5, 50, 1), vec4(0, 0, 0, 1), vec4(0, -1, 0, 1));
+	/*camera.lookAt(vec4(minX, maxY, 3, 1), vec4(minX,maxY, 0, 0), vec4(0, -1, 0, 1));
+	*/
+	camera.lookAt(vec4(0.5, 0.5, 0, 1.0), vec4(0.5, 0.5, -0.1, 1.0), vec4(0, -1, 0, 1.0));
+
+	m_scale = mat4::scale(1.0);
+
 	m_translate = mat4::translate(vec4(0, 0, 0));
-	m_rotate = mat4::rotate(0, 0, 0);
 }
 
 void CCGWorkView::OnSize(UINT nType, int cx, int cy)
@@ -252,7 +272,8 @@ void CCGWorkView::OnSize(UINT nType, int cx, int cy)
 	// this will keep all dimension scales equal
 	m_AspectRatio = (GLdouble)m_WindowWidth / (GLdouble)m_WindowHeight;
 
-	resetTransformations();
+	global_w = cx;
+	global_h = cy;
 }
 
 
@@ -287,7 +308,14 @@ BOOL CCGWorkView::OnEraseBkgnd(CDC* pDC)
 
 void plotPixel(int x, int y){
 	if (x >= 0 && x <= global_w && y >= 0 && y <= global_h)
+		if (drawNormals)
+			(*vec_bitmap)[x + y*global_w] = normalColor;
+		else
 			(*vec_bitmap)[x + y*global_w] = modelColor;
+}
+
+void CCGWorkView::line(CG_Point p1, CG_Point p2){
+	line(p1[0], p1[1], p2[0], p2[1]);
 }
 
 void CCGWorkView::line(int x1, int y1, int x2, int y2){
@@ -440,55 +468,65 @@ void CCGWorkView::updatePipeline(){
 	//mat4 scaleMat = mat4::scale(scale);
 	//mat4 rotate = mat4::rotate(xTheta,yTheta, zTheta);
 	//mat4 translation = mat4::translate(vec4(mid_w, mid_h, 1));
-	/*mat4 prespective = mat4::eye();
-	prespective[3][3] = 0;
-	prespective[2][2] = 15;
-	prespective[2][3] = 80;
-	prespective[3][2] = -1;*/
+
 	//m_scale = m_scale * (1/max);
-	//m_pipeline = m_prespective*camera.transformation()*m_translate*m_scale*m_rotate;
-	
-	/*mat4 s1 = mat4::scale(vec4(2.0 / (maxX - minX), 2.0 / (maxY - minY), 2.0 / (maxZ - minZ), 1));
-	mat4 t1 = mat4::translate(vec4(-(maxX + minX) / 2.0, -(maxY + minY) / 2.0, -(maxZ + minZ) / 2.0, 1));
+	//double R = maxs[0] + 2 * (abs(maxs[0])), L = mins[0] - 2 * (abs(mins[0])), T = maxs[1] + 2 * (abs(maxs[1])), B = mins[1] - 2 * (abs(mins[1]));
+	//double F = mins[2] - 2 * (abs(mins[2])), N = maxs[2];
+	//camera.lookAt(vec4(global_w / 2, global_h / 2, 50, 1), vec4(global_w / 2, global_h / 2, 0, 1), vec4(0, -1, 0, 1));
 
-	/*mat4 s2 = mat4::scale(vec4(global_w / 2, global_h / 2, 1, 1));
-	mat4 t2 = mat4::translate(vec4((global_w - 1) / 2, (global_h - 1) / 2, 0, 1));
-	
-	mat4 t2 = mat4::translate(vec4((global_w - 1) / 2, (global_h - 1) / 2, 0, 1));
-	mat4 s2 = mat4::scale(scale/5);
+
+	mat4 invCamera = camera.transformation().inverse();
+	//mat4 invCamera = mat4::eye();
+	/*double R = mm[0], L =mi[0], T = mm[1], B = mi[1];*/
+	double R = 10, L = -R, T = 1.0 / m_AspectRatio*R, B = -T;
+	//double R = global_w, L = 0, T = global_h, B = 0;
+	double F = -50.0, N = -0.01;
+	double normalizedCubeFactor = 2.0;
+	mat4 s1 = mat4::scale(vec4(normalizedCubeFactor / (R - L), normalizedCubeFactor / (T - B), normalizedCubeFactor / (N - F), 1));
+	mat4 t1 = mat4::translate(vec4(-(L + R) / normalizedCubeFactor, -(T + B) / normalizedCubeFactor, -(F + N) / normalizedCubeFactor, 1));
+
+	mat4 s2 = mat4::scale(vec4(global_w / normalizedCubeFactor, global_h / normalizedCubeFactor, 1, 1));
+	mat4 t2 = mat4::translate(vec4((global_w - 1) / normalizedCubeFactor, (global_h - 1) / normalizedCubeFactor, 0, 1));
 	mat4 l = t2*s2;
 	mat4 r = s1*t1;
 	mat4 projection = l*r;
-	camera.setProjection(projection);
-	//camera.lookAt(vec4(maxX, maxY, maxZ), vec4(minX, minY, minZ), vec4(0, -1, 0));
-	m_pipeline = camera.transformation().inverse()*m_translate*m_scale*m_rotate;
-	m_pipeline = camera.projection()*m_pipeline;*/
-	//mat4 prespective = mat4::prespective((maxZ + minZ) / (minZ - maxZ), (2*maxZ * minZ) / (maxZ - minZ));
-	//mat4 p = mat4::prespective(1);
-	camera.setProjection(mat4::translate(vec4(global_w/4, 0, 0))*mat4::scale(scale));
-	if (m_bIsPerspective)
-		m_pipeline = camera.projection()*mat4::prespective(-1)*camera.transformation().inverse()*m_translate*m_scale*m_rotate;
-	else
-		m_pipeline = camera.projection()*camera.transformation().inverse()*m_translate*m_scale*m_rotate;
-	/*mat4 s1 = mat4::scale(vec4(2.0 / (maxX - minX + 2), 2.0 / (maxY - minY + 2), 2.0 / (maxZ - minZ + 2), 1));
-	mat4 t1 = mat4::translate(vec4(-(maxX + minX) / 2.0, -(maxY + minY) / 2.0, -(maxZ + minZ) / 2.0, 1));
 
-	mat4 s2 = mat4::scale(vec4(global_w / 2, global_h / 2, 1, 1));
-	mat4 t2 = mat4::translate(vec4((global_w - 1) / 2, (global_h - 1) / 2, 0, 1));
-	mat4 l = t2*s2;
-	mat4 r = s1*t1;
-	mat4 projection = l*r;
+
 	camera.setProjection(projection);
 
 
-	mat4 prespective = mat4::eye();
-	prespective[3][3] = 0;
-	prespective[2][2] = 2;
-	prespective[2][3] = 3;
-	prespective[3][2] = -1;
 
-	m_pipeline = camera.projection()*prespective*camera.transformation().inverse()*m_translate*m_scale*m_rotate;*/
+	if (m_bIsPerspective){
+
+		//mat4 p = mat4::eye();
+
+		//mat4 p = mat4::eye();
+		//p[0][0] = N;
+		//p[1][1] = (N);
+		//p[2][2] = (N) + (F);
+		//p[2][3] = -(N*F);
+		//p[3][2] = 1;
+		//p[3][3] = 0;
+		mat4 p = mat4::eye();
+		//p[3][3] = 0;
+		//p[2][2] = (abs(F))/(abs(F)-abs(N));
+		//p[2][3] = - (abs(N*F)) / (abs(F) - abs(N));
+		//p[3][2] = 1/(abs(F));
+
+		p[3][2] = 1 / (abs(F));
+		//p[3][3]=0;
+		m_pipeline = invCamera *m_translate*m_scale*m_rotate;
+		m_pipeline = p*m_pipeline;
+		m_pipeline = projection*m_pipeline;
+		//m_pipeline =projection*p *invCamera *m_translate*m_scale*m_rotate;//*camera.transformation().inverse()*m_translate*m_scale*m_rotate;
+	}
+	else{
+
+		m_pipeline = projection *invCamera*m_translate*m_scale*m_rotate;
+	}
 }
+
+
 
 void CCGWorkView::OnDraw(CDC* pDC)
 {
@@ -528,8 +566,8 @@ void CCGWorkView::OnDraw(CDC* pDC)
 				while (true){
 					/*vec4 p1Offset = *p1*(scale / max);
 					vec4 p2Offset = *p2*(scale / max);*/
-					vec4 p1Offset = m_pipeline*(*p1);
-					vec4 p2Offset = m_pipeline*(*p2);
+					vec4 p1Offset = m_pipeline*model->position*(*p1);
+					vec4 p2Offset = m_pipeline*model->position*(*p2);
 					if (m_bIsPerspective)
 						line(p1Offset[0] / p1Offset[3], p1Offset[1] / p1Offset[3], p2Offset[0] / p2Offset[3], p2Offset[1] / p2Offset[3]);
 					else
@@ -544,22 +582,81 @@ void CCGWorkView::OnDraw(CDC* pDC)
 					}
 				}
 
-				vec4 p1Offset = m_pipeline*(*p1);
-				vec4 p2Offset = m_pipeline*(*p2);
+				vec4 p1Offset = m_pipeline*model->position*(*p1);
+				vec4 p2Offset = m_pipeline*model->position*(*p2);
 				if (m_bIsPerspective)
 					line(p1Offset[0] / p1Offset[3], p1Offset[1] / p1Offset[3], p2Offset[0] / p2Offset[3], p2Offset[1] / p2Offset[3]);
 				else
 					line(p1Offset[0], p1Offset[1], p2Offset[0], p2Offset[1]);
 				//line(mid_w + p1Offset[0], mid_h + p1Offset[1], mid_w + p2Offset[0], mid_h + p2Offset[1]);
 			}
-			/*if (polygonNormals){
-				if (polyGiven)
-					for (CG_Point* point = model->polygonNormals->first(); point != NULL;
-										point = model->polygonNormals->next()){
+			CG_Point p1(minX, minY, minZ,1.0);
+			CG_Point p2(minX, minY, maxZ,1.0);
+			CG_Point p3(minX, maxY, minZ,1.0);
+			CG_Point p4(minX, maxY, maxZ,1.0);
+			CG_Point p5(maxX, minY, minZ,1.0);
+			CG_Point p6(maxX, minY, maxZ,1.0);
+			CG_Point p7(maxX, maxY, minZ,1.0);
+			CG_Point p8(maxX, maxY, maxZ,1.0);
 
+			p1 = m_pipeline*(p1);
+			p2 = m_pipeline*(p2);
+			p3 = m_pipeline*(p3);
+			p4 = m_pipeline*(p4);
+			p5 = m_pipeline*(p5);
+			p6 = m_pipeline*(p6);
+			p7 = m_pipeline*(p7);
+			p8 = m_pipeline*(p8);
+			drawNormals = true;
+			line(p1, p5);
+			line(p1, p3);
+			line(p1, p2);
+			line(p3, p7);
+			line(p3, p4);
+			line(p4, p2);
+			line(p4, p8);
+			line(p2, p6);
+			line(p6, p8);
+			line(p6, p5);
+			line(p8, p7);
+			line(p5, p7);
+			drawNormals = false;
+			if (polygonNormals){
+				drawNormals = TRUE;
+				CG_NormalList* tmp = NULL;
+				if (polyGiven)
+					tmp = model->polygonNormals;
+				else
+					tmp = model->calculatedPolygonNormals;
+				for (CG_Point* dir = tmp->first(),*mid = model->polygonMids->first(); dir != NULL && mid != NULL;
+					dir = model->polygonNormals->next(), mid = model->polygonMids->next()){
+					vec4 normal = (*mid - *dir);
+					normal = m_pipeline*normal;
+					normal = vec4::normalize(normal) * 15;
+					vec4 screenPoint = m_pipeline*(*mid);
+					line(screenPoint[0], screenPoint[1], screenPoint[0] + normal[0], screenPoint[1] + normal[1]);
+				}
+				drawNormals = FALSE;
+			}
+			if (vertexNormals){
+				if (vertexGiven){
+					drawNormals = TRUE;
+					if (model->vertices->getSize() == model->vertexNormals->getSize())
+					for (CG_Point* point = model->vertices->first(),
+						*dir = model->vertexNormals->first(); point != NULL && dir != NULL;
+						point = model->vertices->next(), dir = model->vertexNormals->next()){
+						vec4 normal = (*point+*dir);
+						normal = m_pipeline*normal;
+						normal = vec4::normalize(normal)*15;
+						vec4 screenPoint = m_pipeline*(*point);
+						line(screenPoint[0], screenPoint[1], screenPoint[0] - normal[0], screenPoint[1]- normal[1]);
 					}
-				else{}
-			}*/
+					drawNormals = FALSE;
+				}
+				else{
+
+				}
+			}
 		}
 	}
 	CBitmap bitmap;
@@ -809,12 +906,15 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point){
 				switch (m_nAxis){
 				case ID_AXIS_X:
 					camera.transformation().updateTranslate(vec4(-delta, 0, 0));
+
 					break;
 				case ID_AXIS_Y:
 					camera.transformation().updateTranslate(vec4(0, -delta, 0));
+
 					break;
 				case ID_AXIS_Z:
 					camera.transformation().updateTranslate(vec4(0, 0, -delta));
+
 					break;
 				}
 				break;
@@ -835,12 +935,15 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point){
 				switch (m_nAxis){
 				case ID_AXIS_X:
 					camera.transformation().updateScale(vec4(delta, 0, 0));
+
 					break;
 				case ID_AXIS_Y:
 					camera.transformation().updateScale(vec4(0, delta, 0));
+
 					break;
 				case ID_AXIS_Z:
 					camera.transformation().updateScale(vec4(0, 0, delta));
+
 					break;
 				}
 				break;
@@ -851,13 +954,21 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point){
 			case ID_ACTION_TRANSLATE:
 				switch (m_nAxis){
 				case ID_AXIS_X:
-					m_translate.updateTranslate(vec4(delta, 0, 0));
+					//maxX -= delta;
+					//minX -= delta;
+					//mins[0] -= delta;
+					//maxs[0] -= delta;
+					m_translate.updateTranslate(vec4(-delta, 0, 0));
 					break;
 				case ID_AXIS_Y:
-					m_translate.updateTranslate(vec4(0, delta, 0));
+					//mins[1] -= delta;
+					//maxs[1] -= delta;
+					m_translate.updateTranslate(vec4(0, -delta, 0));
 					break;
 				case ID_AXIS_Z:
-					m_translate.updateTranslate(vec4(0, 0, delta));
+					//maxs[2] -= delta;
+					//mins[2] -= delta;
+					m_translate.updateTranslate(vec4(0, 0, -delta));
 					break;
 				}
 				break;
@@ -877,13 +988,19 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point){
 			case ID_ACTION_SCALE:
 				switch (m_nAxis){
 				case ID_AXIS_X:
-					m_scale.updateScale(vec4(delta, 0, 0));
+					maxX *= delta;
+					minY *= delta;
+					m_scale.updateScale(vec4(delta / 5.0, 0, 0));
 					break;
 				case ID_AXIS_Y:
-					m_scale.updateScale(vec4(0, delta, 0));
+					maxY *= delta;
+					minY *= delta;
+					m_scale.updateScale(vec4(0 / 5.0, delta, 0));
 					break;
 				case ID_AXIS_Z:
-					m_scale.updateScale(vec4(0, 0, delta));
+					maxZ *= delta;
+					minZ *= delta;
+					m_scale.updateScale(vec4(0 / 5.0, 0, delta));
 					break;
 				}
 				break;
@@ -931,9 +1048,23 @@ void CCGWorkView::OnBackgroundColorUpdate(){
 
 void CCGWorkView::OnNormalPolygonGiven(){
 	polygonNormals = !polygonNormals;
-	polyGiven = TRUE;
+	polyGiven = !polyGiven;
 	Invalidate();
 }
+
+void CCGWorkView::OnNormalPolygonCalculated(){
+	if (!polygonNormals)
+		polygonNormals = !polygonNormals;
+	if (polyGiven){
+		polyGiven = !polyGiven;
+	}
+	Invalidate();
+}
+
+void CCGWorkView::OnNormalPolygonCalculatedCheck(CCmdUI* pCmdUI){
+	pCmdUI->SetCheck(polygonNormals);
+}
+
 
 void CCGWorkView::OnNormalPolygonGivenCheck(CCmdUI* pCmdUI)
 {
@@ -941,7 +1072,9 @@ void CCGWorkView::OnNormalPolygonGivenCheck(CCmdUI* pCmdUI)
 }
 
 void CCGWorkView::OnNormalVertexGiven(){
-
+	vertexNormals = !vertexNormals;
+	vertexGiven = !vertexGiven;
+	Invalidate();
 }
 
 void CCGWorkView::OnNormalVertexGivenCheck(CCmdUI* pCmdUI)

@@ -4,8 +4,8 @@
 
 CG_ModelList models;
 double max = 0;
-double maxX, maxY, maxZ;
-double minX, minY, minZ;
+double maxX = INT64_MIN, maxY = INT64_MIN, maxZ = INT64_MIN;
+double minX = INT64_MAX, minY = INT64_MAX, minZ = INT64_MAX;
 int firstDraw = 0;
 
 
@@ -165,7 +165,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 			Attrs = AttrTraceAttributes(Attrs, NULL);
 		}
 	}
-	Model* model = new Model(new CG_PolygonList, new CG_NormalList, new CG_NormalList, RGB(255 * _RGB[0], 255 * _RGB[1], 255 * _RGB[2]));
+	Model* model = new Model(new CG_PolygonList, new CG_NormalList, new CG_NormalList, RGB(255 * _RGB[2], 255 * _RGB[1], 255 * _RGB[0]));
 	for (PPolygon = PObj->U.Pl; PPolygon != NULL; PPolygon = PPolygon->Pnext)
 	{
 		if (PPolygon->PVertex == NULL) {
@@ -181,12 +181,6 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 		/* use if(IP_HAS_PLANE_POLY(PPolygon)) to know whether a normal is defined for the polygon
 		access the normal by the first 3 components of PPolygon->Plane */
 		PVertex = PPolygon->PVertex;
-		maxX = PVertex->Coord[0];
-		maxY = PVertex->Coord[1];
-		maxZ = PVertex->Coord[2];
-		minX = maxX;
-		minY = maxY;
-		minZ = maxZ;
 		CG_Polygon* poly = new CG_Polygon;
 
 		do {			     /* Assume at least one edge in polygon! */
@@ -221,8 +215,8 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 				minZ = z;
 			poly->add(p);
 			model->vertices->add(v);
-			if (IP_HAS_NORMAL_VRTX(PVertex)){
-				model->vertexNormals->add(new vec4(PVertex->Normal[0], PVertex->Normal[1], PVertex->Normal[2]));
+			if (IP_HAS_NORMAL_VRTX(PVertex) != 0){
+				*model->vertexNormals->add(new vec4(PVertex->Normal[0], PVertex->Normal[1], PVertex->Normal[2]));
 			}
 			PVertex = PVertex->Pnext;
 		} while (PVertex != PPolygon->PVertex && PVertex != NULL);

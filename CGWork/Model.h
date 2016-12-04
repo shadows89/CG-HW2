@@ -1,3 +1,6 @@
+#ifndef MODEL_H
+#define MODEL_H
+
 #include <vector>
 #include "LinkedList.h"
 #include "mat4.hpp"
@@ -18,13 +21,13 @@ public:
 	CG_NormalList* calculatedVertexNormals;
 	CG_DependencyList* vertexPolygons;
 	CG_Polygon* vertices;
+	CG_Polygon* polygonMids;
 	COLORREF color;
 
 	mat4 position;
 
 	Model(CG_PolygonList* polygons,CG_NormalList* polygonNormals,CG_NormalList* vertexNormals,COLORREF color){
 		this->polygons = polygons;
-		//this->vertecies;
 		this->polygonNormals = polygonNormals;
 		this->vertexNormals = vertexNormals;
 		this->color = color;
@@ -33,6 +36,7 @@ public:
 		calculatedVertexNormals = new CG_NormalList;
 		vertexPolygons = new CG_DependencyList;
 		vertices = new CG_Polygon;
+		polygonMids = new CG_Polygon;
 	}
 
 	~Model(){
@@ -43,6 +47,7 @@ public:
 		delete vertexNormals;
 		delete vertices;
 		delete vertexPolygons;
+		delete polygonMids;
 	}
 
 	void calculateNormals(){
@@ -55,6 +60,13 @@ public:
 	}
 
 	void calculatePolygonNormals(){
+		for (CG_Polygon* polygon = polygons->first(); polygon != NULL; polygon = polygons->next()){
+			CG_Point* mid =  new vec4(0, 0, 0);
+			for (CG_Point* point = polygon->first(); point != NULL; point = polygon->next())
+				(*mid) = (*mid) + (*point);
+			(*mid) = (*mid) *(1.0/polygon->getSize());
+			polygonMids->add(mid);
+		}
 		for (CG_Polygon* polygon = polygons->first(); polygon != NULL; polygon = polygons->next()){
 			CG_Point* p1, *p2, *p3;
 			p1 = polygon->first();
@@ -112,3 +124,5 @@ public:
 
 
 typedef  LinkedList<Model*> CG_ModelList;
+
+#endif

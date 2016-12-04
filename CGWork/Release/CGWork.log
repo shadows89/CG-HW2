@@ -1,6 +1,23 @@
-﻿Build started 12/2/2016 21:06:17.
+﻿Build started 12/3/2016 18:13:35.
      1>Project "B:\234325\CG-HW2\CGWork\CGWork.vcxproj" on node 2 (Build target(s)).
-     1>Link:
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I..\pngLib /I..\include /Zi /nologo /W3 /WX- /O2 /Ob1 /Oy- /D WIN32 /D NDEBUG /D _WINDOWS /D WINVER=0x501 /D NO_WARN_MBCS_MFC_DEPRECATION /D _VC80_UPGRADE=0x0710 /D _UNICODE /D UNICODE /D _AFXDLL /GF /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo".\Release/" /Fd".\Release/vc120.pdb" /FR".\Release\\" /Gd /TP /wd4273 /wd4996 /wd4800 /analyze- /errorReport:prompt CGWorkView.cpp
+         CGWorkView.cpp
+     1>CGWorkView.cpp(534): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+     1>CGWorkView.cpp(536): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+     1>CGWorkView.cpp(550): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+     1>CGWorkView.cpp(552): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"..\bin\Release\CGWork.exe" /INCREMENTAL:NO /NOLOGO /LIBPATH:..\pngLib /LIBPATH:..\iritLib GLU32.LIB zlib.lib libpng.lib irit.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /manifestinput:"C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\Include\Manifest\dpiaware.manifest" /PDB:".\Release/CGWork.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /ENTRY:"wWinMainCRTStartup" /DYNAMICBASE:NO /IMPLIB:"..\bin\Release\CGWork.lib" /MACHINE:X86 /SAFESEH .\Release\CGWork.res
+         .\Release/CGWork.obj
+         .\Release/CGWorkDoc.obj
+         .\Release/CGWorkView.obj
+         .\Release/iritSkel.obj
+         .\Release/LightDialog.obj
+         .\Release/MainFrm.obj
+         .\Release/MaterialDlg.obj
+         .\Release/PngWrapper.obj
+         .\Release/StdAfx.obj
          CGWork.vcxproj -> B:\234325\CG-HW2\CGWork\..\bin\Release\CGWork.exe
        BscMake:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\bscmake.exe /nologo /o"..\bin\Release\CGWork.bsc" .\Release\CGWork.sbr .\Release\CGWorkDoc.sbr .\Release\CGWorkView.sbr .\Release\iritSkel.sbr .\Release\LightDialog.sbr .\Release\MainFrm.sbr .\Release\MaterialDlg.sbr .\Release\PngWrapper.sbr .\Release\StdAfx.sbr
@@ -8,4 +25,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:03.39
+Time Elapsed 00:00:06.21

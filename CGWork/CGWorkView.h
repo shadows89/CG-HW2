@@ -17,7 +17,7 @@
 #include "Light.h"
 #include "mat4.hpp"
 #include "Camera.hpp"
-
+#include "Model.h"
 class CCGWorkView : public CView
 {
 protected: // create from serialization only
@@ -36,7 +36,7 @@ private:
 	int m_nAction;				// Rotate, Translate, Scale
 	int m_nView;				// Orthographic, perspective
 	bool m_bIsPerspective;			// is the view perspective
-	mat4 m_prespective = mat4::prespective(-1);
+	//mat4 m_prespective = mat4::prespective(1);
 	mat4 m_scale = mat4::eye();
 	mat4 m_translate = mat4::translate(vec4(1, 1, 1));
 	mat4 m_rotate = mat4::rotate(0, 0, 0);
@@ -55,6 +55,7 @@ private:
 	int m_nMaterialCosineFactor;		// The cosine factor for the specular
 
 	void line(int x1, int y1, int x2, int y2);
+	void line(CG_Point p1, CG_Point p2);
 	void small_slope_negative(int x1, int y1, int x2, int y2);
 	void small_slope_positive(int x1, int y1, int x2, int y2);
 	void big_slope_positive(int x1, int y1, int x2, int y2);
@@ -141,6 +142,8 @@ protected:
 	afx_msg void OnNormalVertexGiven();
 	afx_msg void OnNormalPolygonGivenCheck(CCmdUI* pCmdUI);
 	afx_msg void OnNormalVertexGivenCheck(CCmdUI* pCmdUI);
+	afx_msg void OnNormalPolygonCalculated();
+	afx_msg void OnNormalPolygonCalculatedCheck(CCmdUI* pCmdUI);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };
